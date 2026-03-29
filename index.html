@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartBreak Attendance</title>
+    <!-- Favicon -->
+    <link rel="icon" href="https://www.dsppa.smartnusantara.com/image/cop.png" type="image/png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -490,7 +492,7 @@
     <script>
         // --- 1. CONFIG: URL WEB APP GOOGLE APPS SCRIPT ---
         // MASUKKAN URL WEB APP YANG ANDA DAPAT DARI GOOGLE APPS SCRIPT SETELAH DEPLOY
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz2FcL3wOu4A6s_Re-2T5LhuAm0RqsXzqL4gENq4bJUd3IoFd2vMbnybHZQN5FjOd64fQ/exec";
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzObbLYss89FOEHM0sOsPX7SLDpEhGVufsA8gqYFI9xy9CXdKfYVgKx-2NAvb1eQH7jrg/exec";
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
@@ -499,16 +501,24 @@
             }
 
             return fetch(GAS_WEB_APP_URL, {
+                redirect: "follow", // <-- PENTING: Mengizinkan fetch mengikuti redirect bawaan Google
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: action, parameters: params })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("HTTP Error: " + response.status);
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'error') {
                     throw new Error(data.message);
                 }
                 return data.data;
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                throw new Error("Gagal terhubung ke Server. Pastikan URL benar & Akses Web App diatur ke 'Anyone'. Detail: " + err.message);
             });
         }
 
@@ -625,7 +635,7 @@
                     document.getElementById('app-container').classList.add('hidden');
                     document.getElementById('login-section').classList.remove('hidden');
                     
-                    document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden-section'));
+                    document.querySelectorAll('[id^="section"]').forEach(el => el.classList.add('hidden-section'));
                     
                     if (html5QrcodeScanner) {
                         html5QrcodeScanner.stop().catch(() => {});
