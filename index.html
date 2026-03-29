@@ -317,20 +317,21 @@
                 <!-- Admin Only Panel -->
                 <div id="adminPanelWrapper" class="hidden space-y-6">
                     
-                    <!-- Management Users Table -->
+                    <!-- Approval Baru Card Style -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-amber-400">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-user-check text-amber-500 mr-2"></i> Approval Manager Baru</h2>
+                        <div id="approvalList" class="space-y-3">
+                            <!-- Injected Approval Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Management Users Card Style -->
                     <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-400">
                         <h2 class="text-xl font-bold text-gray-800 mb-4 flex justify-between items-center">
                             <span><i class="fas fa-users-cog text-indigo-500 mr-2"></i> Manajemen Semua Pengguna</span>
                         </h2>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse" id="allUsersTable">
-                                <thead>
-                                    <tr class="bg-gray-50 text-gray-500 text-sm">
-                                        <th class="p-3">ID</th><th class="p-3">Nama Lengkap</th><th class="p-3">Role</th><th class="p-3">Store</th><th class="p-3 text-center">Status</th><th class="p-3 text-right">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="allUsersList" class="divide-y divide-gray-200"></tbody>
-                            </table>
+                        <div id="allUsersList" class="space-y-3">
+                            <!-- Injected User Cards -->
                         </div>
                     </div>
 
@@ -419,7 +420,7 @@
                 </div>
                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors" onclick="document.getElementById('newImg').click()">
                     <i class="fas fa-cloud-upload-alt text-3xl text-indigo-400 mb-2"></i>
-                    <span class="block text-sm text-gray-500">Upload Foto (Opsional)</span>
+                    <span class="block text-sm text-gray-500">Upload Foto (Maks. 2MB)</span>
                     <input type="file" id="newImg" class="hidden" accept="image/*" onchange="previewFile(this)">
                     <p id="fileName" class="text-xs text-green-600 mt-2 font-semibold"></p>
                 </div>
@@ -491,7 +492,6 @@
     <!-- JAVASCRIPT (FETCH API TERPISAH) -->
     <script>
         // --- 1. CONFIG: URL WEB APP GOOGLE APPS SCRIPT ---
-        // MASUKKAN URL WEB APP YANG ANDA DAPAT DARI GOOGLE APPS SCRIPT SETELAH DEPLOY
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzObbLYss89FOEHM0sOsPX7SLDpEhGVufsA8gqYFI9xy9CXdKfYVgKx-2NAvb1eQH7jrg/exec";
 
         // --- 2. CORE FETCH WRAPPER ---
@@ -501,7 +501,7 @@
             }
 
             return fetch(GAS_WEB_APP_URL, {
-                redirect: "follow", // <-- PENTING: Mengizinkan fetch mengikuti redirect bawaan Google
+                redirect: "follow", 
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: action, parameters: params })
@@ -743,27 +743,43 @@
             if(data.length === 0) { list.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak ada data Karyawan</div>`; return; }
 
             data.forEach(e => {
-                let actionBtns = '';
-                if (currentUser.role !== 'KARYAWAN') {
-                    actionBtns = `
-                        <button onclick="openEditModal('${e.id}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteEmployee('${e.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="fas fa-trash"></i></button>
+                // Semua bisa edit, Delete hanya ADMIN
+                let actionBtns = `
+                    <button onclick="openEditModal('${e.id}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded transition-colors" title="Edit Profil"><i class="fas fa-edit"></i></button>
+                `;
+                if (currentUser.role === 'ADMIN') {
+                    actionBtns += `
+                        <button onclick="deleteEmployee('${e.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded transition-colors" title="Hapus Karyawan"><i class="fas fa-trash"></i></button>
                     `;
                 }
 
                 list.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 relative">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 relative hover:shadow-md transition-shadow">
                         <img src="${e.image || 'https://via.placeholder.com/150'}" class="w-14 h-14 rounded-full object-cover border-2 border-indigo-50">
                         <div class="flex-1 min-w-0">
                             <p class="font-bold text-gray-900 truncate">${e.name}</p>
                             <p class="text-xs text-gray-500">${e.id} • ${e.position}</p>
                             <span class="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded mt-1 inline-block">${e.store}</span>
                         </div>
-                        <div class="flex flex-col gap-1">
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                            <button onclick="generateQRCode('${e.id}', '${e.name}')" class="text-indigo-500 hover:bg-indigo-50 p-2 rounded transition-colors" title="Tampilkan Barcode/QR"><i class="fas fa-qrcode"></i></button>
                             ${actionBtns}
                         </div>
                     </div>
                 `;
+            });
+        }
+
+        function generateQRCode(id, name) {
+            Swal.fire({
+                title: name,
+                html: `
+                    <p class="mb-4 text-sm text-gray-500">Employee ID: <strong>${id}</strong></p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" class="mx-auto rounded-lg shadow-sm border p-2 w-48 h-48" alt="QR Code ${name}">
+                    <p class="mt-4 text-xs text-gray-400">Silakan scan kode di atas pada menu scanner.</p>
+                `,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#4f46e5'
             });
         }
 
@@ -789,7 +805,9 @@
             document.getElementById('newStore').value = emp.store;
             document.getElementById('newPos').value = emp.position;
             document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
-            fileBase64 = emp.image || '';
+            
+            // Simpan foto lama di variabel memory agar tidak hilang jika tidak update foto baru
+            fileBase64 = emp.image || ''; 
             document.getElementById('employeeModal').classList.remove('hidden');
         }
 
@@ -798,8 +816,18 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
+                // Proteksi ukuran file (Max 2MB)
+                if(file.size > 2 * 1024 * 1024) {
+                    Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB.', 'warning');
+                    input.value = '';
+                    return;
+                }
+
                 const reader = new FileReader();
-                reader.onloadend = () => { fileBase64 = reader.result; document.getElementById('fileName').innerText = file.name; }
+                reader.onloadend = () => { 
+                    fileBase64 = reader.result; 
+                    document.getElementById('fileName').innerText = file.name; 
+                }
                 reader.readAsDataURL(file);
             }
         }
@@ -961,29 +989,35 @@
         }
 
         function loadAdminApprovals() {
-            document.getElementById('approvalList').innerHTML = '<tr><td colspan="5" class="p-3 text-center"><div class="loader mx-auto"></div></td></tr>';
+            document.getElementById('approvalList').innerHTML = '<div class="text-center py-4"><div class="loader mx-auto"></div></div>';
             
             callBackend('getAllUsers')
                 .then(users => {
                     const pendings = users.filter(u => u.role === 'MANAGER' && u.status === 'pending');
-                    const tbody = document.getElementById('approvalList');
-                    tbody.innerHTML = '';
+                    const wrapper = document.getElementById('approvalList');
+                    wrapper.innerHTML = '';
+                    
                     if(pendings.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-400">Tidak ada request approval.</td></tr>';
+                        wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada request approval.</div>';
                         return;
                     }
+                    
                     pendings.forEach(u => {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td class="p-3 font-mono text-sm">${u.id}</td>
-                                <td class="p-3 font-bold text-sm">${u.name}</td>
-                                <td class="p-3"><span class="bg-gray-100 text-xs px-2 py-1 rounded">${u.store}</span></td>
-                                <td class="p-3 text-sm">${u.position}</td>
-                                <td class="p-3 text-right">
-                                    <button onclick="accManager('${u.id}')" class="bg-green-500 text-white p-1.5 rounded mr-1 hover:bg-green-600"><i class="fas fa-check"></i></button>
-                                    <button onclick="rejManager('${u.id}')" class="bg-red-500 text-white p-1.5 rounded hover:bg-red-600"><i class="fas fa-times"></i></button>
-                                </td>
-                            </tr>
+                        wrapper.innerHTML += `
+                            <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-bold text-gray-900">${u.name}</h4>
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 uppercase">PENDING</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-2"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
+                                </div>
+                                <div class="flex gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                    <button onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-check mr-1"></i> Terima</button>
+                                    <button onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-times mr-1"></i> Tolak</button>
+                                </div>
+                            </div>
                         `;
                     });
                 })
@@ -991,36 +1025,67 @@
         }
 
         function loadAllUsers() {
-            document.getElementById('allUsersList').innerHTML = '<tr><td colspan="6" class="p-3 text-center"><div class="loader mx-auto"></div></td></tr>';
+            document.getElementById('allUsersList').innerHTML = '<div class="text-center py-4"><div class="loader mx-auto"></div></div>';
 
             callBackend('getAllUsers')
                 .then(users => {
-                    const tbody = document.getElementById('allUsersList');
-                    tbody.innerHTML = '';
-                    if(users.length === 0) return;
+                    const wrapper = document.getElementById('allUsersList');
+                    wrapper.innerHTML = '';
+                    if(users.length === 0) {
+                        wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada data.</div>';
+                        return;
+                    }
                     
                     users.forEach(u => {
                         const badgeClass = u.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800';
                         const isSelf = u.id === currentUser.id;
                         
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-gray-50">
-                                <td class="p-3 text-sm text-gray-500 font-mono">${u.id}</td>
-                                <td class="p-3 text-sm font-bold">${u.name}</td>
-                                <td class="p-3 text-sm">${u.role}</td>
-                                <td class="p-3 text-sm">${u.store}</td>
-                                <td class="p-3 text-sm text-center">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${badgeClass}">${u.status}</span>
-                                </td>
-                                <td class="p-3 text-right">
-                                    <button onclick="openEditUserModal('${u.id}')" class="text-amber-500 hover:text-amber-700 mx-1" title="Edit"><i class="fas fa-edit"></i></button>
-                                    ${!isSelf ? `<button onclick="deleteUserRow('${u.id}')" class="text-red-500 hover:text-red-700 mx-1" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
-                                </td>
-                            </tr>
+                        wrapper.innerHTML += `
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-bold text-gray-900">${u.name}</h4>
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeClass} uppercase">${u.status}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-2"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
+                                    <div class="flex gap-2">
+                                        <span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-user-shield mr-1"></i>${u.role}</span>
+                                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
+                                    </div>
+                                </div>
+                                <div class="flex sm:flex-col gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                    <button onclick="viewUserDetail('${u.id}')" class="flex-1 bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-eye"></i> Detail</button>
+                                    <button onclick="openEditUserModal('${u.id}')" class="flex-1 bg-white border border-gray-300 text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-edit"></i> Edit</button>
+                                    ${!isSelf ? `<button onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-gray-300 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-trash"></i> Hapus</button>` : ''}
+                                </div>
+                            </div>
                         `;
                     });
                 })
                 .catch(err => console.error("Gagal load users: ", err));
+        }
+
+        function viewUserDetail(id) {
+            callBackend('getAllUsers')
+                .then(users => {
+                    const u = users.find(x => x.id === id);
+                    if(!u) return;
+                    Swal.fire({
+                        title: 'Info Pengguna',
+                        html: `
+                            <div class="text-left text-sm space-y-2 mt-4 bg-gray-50 p-4 rounded-lg border">
+                                <p><strong>ID:</strong> ${u.id}</p>
+                                <p><strong>Nama Lengkap:</strong> ${u.name}</p>
+                                <p><strong>Role Akses:</strong> ${u.role}</p>
+                                <p><strong>Store Asal:</strong> ${u.store}</p>
+                                <p><strong>Jabatan:</strong> ${u.position}</p>
+                                <p><strong>Status:</strong> ${u.status.toUpperCase()}</p>
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'Tutup'
+                    });
+                })
         }
 
         function openEditUserModal(id) {
@@ -1065,7 +1130,7 @@
         function deleteUserRow(id) {
             Swal.fire({
                 title: 'Hapus Pengguna ini?', 
-                text: 'Data user dan karyawan akan dihapus permanen!',
+                text: 'Data user dan profil karyawan akan dihapus permanen!',
                 icon: 'error', 
                 showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus'
             }).then(r => {
