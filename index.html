@@ -743,14 +743,15 @@
             if(data.length === 0) { list.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak ada data Karyawan</div>`; return; }
 
             data.forEach(e => {
-                // Edit tombol tersedia untuk semua user (karyawan/manager/admin) yang berhak melihatnya
+                // Mengamankan string (Escape String) untuk menghindari error klik akibat petik tunggal/ganda
+                const safeName = e.name ? e.name.replace(/"/g, '&quot;') : 'Unknown';
+                
                 let actionBtns = `
-                    <button onclick="openEditModal('${e.id}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded transition-colors" title="Edit Profil"><i class="fas fa-edit"></i></button>
+                    <button type="button" onclick="openEditModal('${e.id}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded transition-colors" title="Edit Profil"><i class="fas fa-edit"></i></button>
                 `;
-                // Hapus tombol hanya untuk ADMIN
                 if (currentUser.role === 'ADMIN') {
                     actionBtns += `
-                        <button onclick="deleteEmployee('${e.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded transition-colors" title="Hapus Karyawan"><i class="fas fa-trash"></i></button>
+                        <button type="button" onclick="deleteEmployee('${e.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded transition-colors" title="Hapus Karyawan"><i class="fas fa-trash"></i></button>
                     `;
                 }
 
@@ -762,8 +763,8 @@
                             <p class="text-xs text-gray-500">${e.id} • ${e.position}</p>
                             <span class="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded mt-1 inline-block">${e.store}</span>
                         </div>
-                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-2">
-                            <button onclick="generateQRCode('${e.id}', '${e.name}')" class="text-indigo-500 hover:bg-indigo-50 p-2 rounded transition-colors" title="Tampilkan Barcode/QR"><i class="fas fa-qrcode"></i></button>
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-2 relative z-10">
+                            <button type="button" onclick="generateQRCode('${e.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="text-indigo-500 hover:bg-indigo-50 p-2 rounded transition-colors" title="Tampilkan Barcode/QR"><i class="fas fa-qrcode"></i></button>
                             ${actionBtns}
                         </div>
                     </div>
@@ -797,9 +798,14 @@
 
         function openEditModal(id) {
             isEditingEmp = true;
-            // Konversi e.id ke string agar cocok dengan id yang dikirimkan via onclick parameter
+            // Mencari data di variabel memori berdasarkan ID yang diklik
             const emp = currentEmployees.find(e => String(e.id) === String(id));
-            if(!emp) return;
+            
+            if(!emp) {
+                Swal.fire('Error', 'Data Karyawan tidak ditemukan di sistem lokal!', 'error');
+                return;
+            }
+            
             document.getElementById('modalTitle').innerText = "Edit Karyawan";
             document.getElementById('newId').value = emp.id;
             document.getElementById('newId').disabled = true;
@@ -817,7 +823,6 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
-                // Proteksi batas file 2MB sebelum convert to base64
                 if(file.size > 2 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB.', 'warning');
                     input.value = '';
@@ -933,16 +938,17 @@
             
             data.forEach(row => {
                 const badge = row.status === 'Tepat Waktu' ? 'bg-green-100 text-green-800' : (row.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800');
+                const safeName = row.name ? row.name.replace(/"/g, '&quot;') : '';
                 
                 let delBtn = '';
                 if(currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') {
-                    delBtn = `<button onclick="deleteHistoryRow('${row.id}')" class="text-red-500 ml-3"><i class="fas fa-trash"></i></button>`;
+                    delBtn = `<button type="button" onclick="deleteHistoryRow('${row.id}')" class="text-red-500 ml-3"><i class="fas fa-trash"></i></button>`;
                 }
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <button onclick="viewHist('${row.name}', '${row.out}', '${row.in}', '${row.duration}')" class="text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button type="button" onclick="viewHist(this.getAttribute('data-name'), '${row.out}', '${row.in}', '${row.duration}')" data-name="${safeName}" class="text-blue-500"><i class="fas fa-eye"></i></button>
                             ${delBtn}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-xs font-bold">${row.store}</td>
@@ -1015,8 +1021,8 @@
                                     <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
                                 </div>
                                 <div class="flex gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
-                                    <button onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-check mr-1"></i> Terima</button>
-                                    <button onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-times mr-1"></i> Tolak</button>
+                                    <button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-check mr-1"></i> Terima</button>
+                                    <button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-times mr-1"></i> Tolak</button>
                                 </div>
                             </div>
                         `;
@@ -1040,9 +1046,10 @@
                     users.forEach(u => {
                         const badgeClass = u.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800';
                         const isSelf = String(u.id) === String(currentUser.id);
+                        const safeName = u.name ? u.name.replace(/"/g, '&quot;') : '';
                         
                         wrapper.innerHTML += `
-                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm transition-shadow">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-1">
                                         <h4 class="font-bold text-gray-900">${u.name}</h4>
@@ -1054,11 +1061,11 @@
                                         <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
                                     </div>
                                 </div>
-                                <div class="flex flex-wrap sm:flex-col gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
-                                    <button onclick="generateQRCode('${u.id}', '${u.name}')" class="flex-1 bg-white border border-gray-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-qrcode"></i> Barcode</button>
-                                    <button onclick="viewUserDetail('${u.id}')" class="flex-1 bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-eye"></i> Detail</button>
-                                    <button onclick="openEditUserModal('${u.id}')" class="flex-1 bg-white border border-gray-300 text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-edit"></i> Edit</button>
-                                    ${!isSelf ? `<button onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-gray-300 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-trash"></i> Hapus</button>` : ''}
+                                <div class="flex flex-wrap sm:flex-col gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
+                                    <button type="button" onclick="generateQRCode('${u.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="flex-1 bg-white border border-gray-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-qrcode"></i> Barcode</button>
+                                    <button type="button" onclick="viewUserDetail('${u.id}')" class="flex-1 bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-eye"></i> Detail</button>
+                                    <button type="button" onclick="openEditUserModal('${u.id}')" class="flex-1 bg-white border border-gray-300 text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-edit"></i> Edit</button>
+                                    ${!isSelf ? `<button type="button" onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-gray-300 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-trash"></i> Hapus</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -1068,10 +1075,14 @@
         }
 
         function viewUserDetail(id) {
+            showLoading('Memuat Detail...');
             callBackend('getAllUsers')
                 .then(users => {
                     const u = users.find(x => String(x.id) === String(id));
-                    if(!u) return;
+                    if(!u) {
+                        Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
+                        return;
+                    }
                     Swal.fire({
                         title: 'Info Pengguna',
                         html: `
@@ -1081,20 +1092,27 @@
                                 <p><strong>Role Akses:</strong> ${u.role}</p>
                                 <p><strong>Store Asal:</strong> ${u.store}</p>
                                 <p><strong>Jabatan:</strong> ${u.position}</p>
-                                <p><strong>Status:</strong> ${u.status.toUpperCase()}</p>
+                                <p><strong>Status:</strong> <span class="uppercase font-bold">${u.status}</span></p>
                             </div>
                         `,
                         icon: 'info',
-                        confirmButtonText: 'Tutup'
+                        confirmButtonText: 'Tutup',
+                        confirmButtonColor: '#4f46e5'
                     });
                 })
+                .catch(err => Swal.fire('Gagal', err.message, 'error'));
         }
 
         function openEditUserModal(id) {
+            showLoading('Menyiapkan Editor...');
             callBackend('getAllUsers')
                 .then(users => {
+                    Swal.close();
                     const u = users.find(x => String(x.id) === String(id));
-                    if(!u) return;
+                    if(!u) {
+                        Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
+                        return;
+                    }
                     
                     document.getElementById('editUserId').value = u.id;
                     document.getElementById('editUserName').value = u.name;
@@ -1105,7 +1123,7 @@
                     
                     document.getElementById('editUserModal').classList.remove('hidden');
                 })
-                .catch(err => console.error("Gagal buka modal edit user: ", err));
+                .catch(err => Swal.fire('Gagal', err.message, 'error'));
         }
 
         function submitEditUser() {
@@ -1118,7 +1136,7 @@
                 password: document.getElementById('editUserPassword').value
             };
 
-            showLoading('Menyimpan...');
+            showLoading('Menyimpan Perubahan...');
             callBackend('updateUser', updatedUser)
                 .then(() => {
                     closeModal('editUserModal');
