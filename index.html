@@ -424,7 +424,7 @@
                     <img id="previewImage" src="" class="hidden mx-auto w-28 h-28 rounded-full object-cover mb-2 border-4 border-indigo-100 shadow-sm" alt="Preview Foto">
                     <div id="uploadPlaceholder">
                         <i class="fas fa-cloud-upload-alt text-3xl text-indigo-400 mb-2"></i>
-                        <span class="block text-sm text-gray-500">Upload Foto (Maks. 2MB)</span>
+                        <span class="block text-sm text-gray-500">Upload Foto (Maks. 5MB, Auto-Kompres)</span>
                     </div>
                     <input type="file" id="newImg" class="hidden" accept="image/*" onchange="previewFile(this)">
                     <p id="fileName" class="text-xs text-green-600 mt-2 font-semibold truncate px-2"></p>
@@ -498,18 +498,15 @@
     <!-- JAVASCRIPT (FETCH API TERPISAH) -->
     <script>
         // --- 1. CONFIG: URL WEB APP GOOGLE APPS SCRIPT ---
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwY-eC8KcUPb2mJcqbhu4rO4FE96Pzf2kS6wcGjEOBO7jdYCwumKJnJChoyLChx2X77dg/exec";
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbybvIngCfW2XJKJ8IG1Dk-J8LIU4hxbwNHRrPrk91dBDw2Lnl0lHDM-sYzNTFjDaP7tEQ/exec";
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
-            if (GAS_WEB_APP_URL === "ISI_DENGAN_URL_WEB_APP_GAS_ANDA_DISINI") {
-                return Promise.reject(new Error("URL Web App GAS belum diisi di kode HTML!"));
-            }
-
+            // Mencegah request OPTIONS pada beberapa browser saat menggunakan fetch POST murni.
+            // Tidak menyertakan header 'Content-Type' untuk memastikan string terkirim dengan mode simpel
             return fetch(GAS_WEB_APP_URL, {
                 redirect: "follow", 
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: action, parameters: params })
             })
             .then(response => {
@@ -887,22 +884,51 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
-                // Proteksi batas file 2MB sebelum convert to base64
-                if(file.size > 2 * 1024 * 1024) {
-                    Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB.', 'warning');
+                // Proteksi batas file 5MB sebelum dikompresi otomatis
+                if(file.size > 5 * 1024 * 1024) {
+                    Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.', 'warning');
                     input.value = '';
                     return;
                 }
 
                 const reader = new FileReader();
-                reader.onloadend = () => { 
-                    fileBase64 = reader.result; 
-                    document.getElementById('fileName').innerText = file.name; 
-                    
-                    // Show live preview directly in modal with proper scaling
-                    document.getElementById('previewImage').src = fileBase64;
-                    document.getElementById('previewImage').classList.remove('hidden');
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                reader.onload = (e) => { 
+                    const img = new Image();
+                    img.onload = () => {
+                        // Kompresi Otomatis menggunakan HTML5 Canvas
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 400; // Resolusi responsif yang ringan dan tajam untuk foto profil
+                        const MAX_HEIGHT = 400;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Konversi ke Base64 (Format WebP agar ringan dan transparan, quality 80%)
+                        fileBase64 = canvas.toDataURL('image/webp', 0.8); 
+                        document.getElementById('fileName').innerText = file.name + ' (Terkonversi Base64)'; 
+                        
+                        // Memunculkan preview responsif di modal
+                        document.getElementById('previewImage').src = fileBase64;
+                        document.getElementById('previewImage').classList.remove('hidden');
+                        document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    };
+                    img.src = e.target.result;
                 }
                 reader.readAsDataURL(file);
             }
