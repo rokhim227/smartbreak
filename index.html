@@ -43,6 +43,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .login-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        /* Fix for mobile safe area / bottom navigation overlap */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="h-screen overflow-hidden">
@@ -389,6 +391,8 @@
                 </div>
             </div>
 
+            <!-- Spacer to ensure content is not hidden behind bottom nav on mobile -->
+            <div class="h-24 w-full"></div>
         </main>
 
         <!-- Bottom Navigation -->
@@ -537,10 +541,8 @@
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
-            if (GAS_WEB_APP_URL === "ISI_DENGAN_URL_WEB_APP_GAS_ANDA_DISINI") {
-                return Promise.reject(new Error("URL Web App GAS belum diisi di kode HTML!"));
-            }
-
+            // Mencegah request OPTIONS pada beberapa browser saat menggunakan fetch POST murni.
+            // Tidak menyertakan header 'Content-Type' untuk memastikan string terkirim dengan mode simpel
             return fetch(GAS_WEB_APP_URL, {
                 redirect: "follow", 
                 method: 'POST',
@@ -562,15 +564,14 @@
             });
         }
 
-        // --- 3. GLOBAL STATE & PAGINATION ---
+        // --- 3. GLOBAL STATE ---
         let currentUser = null; 
-        
         let currentEmployees = [];
+        let currentHistory = [];
         let isEditingEmp = false;
         let fileBase64 = '';
 
         // Pagination History
-        let currentHistory = [];
         let filteredHistory = [];
         let historyPage = 1;
         const historyPerPage = 10;
@@ -899,6 +900,7 @@
             document.getElementById('newId').disabled = false;
             document.getElementById('newName').value = '';
             
+            // Reset image states
             document.getElementById('fileName').innerText = '';
             document.getElementById('previewImage').classList.add('hidden');
             document.getElementById('previewImage').src = '';
@@ -927,6 +929,7 @@
                 document.getElementById('newPos').value = emp.position;
                 document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
                 
+                // Show existing image if any
                 fileBase64 = emp.image || ''; 
                 if (fileBase64) {
                     document.getElementById('previewImage').src = fileBase64;
@@ -947,6 +950,7 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
+                // Proteksi batas file 5MB sebelum dikompresi otomatis
                 if(file.size > 5 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.', 'warning');
                     input.value = '';
@@ -957,6 +961,7 @@
                 reader.onload = (e) => { 
                     const img = new Image();
                     img.onload = () => {
+                        // Kompresi Otomatis menggunakan HTML5 Canvas
                         const canvas = document.createElement('canvas');
                         const MAX_WIDTH = 400; 
                         const MAX_HEIGHT = 400;
