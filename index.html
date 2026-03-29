@@ -419,16 +419,16 @@
                     </select>
                 </div>
                 
-                <!-- Updated Photo Upload Area with Live Preview -->
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors relative" onclick="document.getElementById('newImg').click()">
-                    <img id="previewImage" src="" class="hidden mx-auto h-24 w-24 rounded-full object-cover mb-2 border-2 border-indigo-100 shadow-sm">
+                <!-- Updated Photo Upload Area with Label for safety -->
+                <label class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors relative block">
+                    <img id="previewImage" src="" class="hidden mx-auto w-28 h-28 rounded-full object-cover mb-2 border-4 border-indigo-100 shadow-sm" alt="Preview Foto">
                     <div id="uploadPlaceholder">
                         <i class="fas fa-cloud-upload-alt text-3xl text-indigo-400 mb-2"></i>
                         <span class="block text-sm text-gray-500">Upload Foto (Maks. 2MB)</span>
                     </div>
                     <input type="file" id="newImg" class="hidden" accept="image/*" onchange="previewFile(this)">
-                    <p id="fileName" class="text-xs text-green-600 mt-2 font-semibold"></p>
-                </div>
+                    <p id="fileName" class="text-xs text-green-600 mt-2 font-semibold truncate px-2"></p>
+                </label>
 
             </div>
             <div class="p-4 border-t bg-gray-50 flex justify-end">
@@ -498,7 +498,7 @@
     <!-- JAVASCRIPT (FETCH API TERPISAH) -->
     <script>
         // --- 1. CONFIG: URL WEB APP GOOGLE APPS SCRIPT ---
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzObbLYss89FOEHM0sOsPX7SLDpEhGVufsA8gqYFI9xy9CXdKfYVgKx-2NAvb1eQH7jrg/exec";
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz2FcL3wOu4A6s_Re-2T5LhuAm0RqsXzqL4gENq4bJUd3IoFd2vMbnybHZQN5FjOd64fQ/exec";
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
@@ -539,20 +539,40 @@
             Swal.fire({ title: msg, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         }
 
-        // Zoom Image Feature
+        // --- FITUR ZOOM IN/OUT FOTO PROFIL ---
+        window.currentZoom = 1;
         function zoomImage(url, name) {
             Swal.fire({
                 title: `Foto Profil: ${name}`,
-                imageUrl: url,
-                imageAlt: `Foto ${name}`,
-                width: 'auto',
-                padding: '1em',
+                html: `
+                    <div class="relative overflow-auto rounded-lg shadow-inner bg-gray-50 flex items-center justify-center border border-gray-200" style="height: 50vh; touch-action: none;" id="zoomContainer">
+                        <img id="zoomedImg" src="${url}" class="transition-transform duration-200 ease-out origin-center object-contain max-h-full max-w-full" alt="Foto ${name}" style="transform: scale(1);">
+                    </div>
+                    <div class="mt-4 flex justify-center gap-4 bg-gray-100 py-2 px-4 rounded-full w-max mx-auto shadow-sm border border-gray-200">
+                        <button type="button" onclick="changeZoom(-0.25)" class="w-10 h-10 bg-white hover:bg-gray-100 rounded-full text-gray-700 shadow flex items-center justify-center transition-transform active:scale-95"><i class="fas fa-search-minus"></i></button>
+                        <button type="button" onclick="resetZoom()" class="w-10 h-10 bg-white hover:bg-gray-100 rounded-full text-indigo-600 shadow flex items-center justify-center transition-transform active:scale-95"><i class="fas fa-compress"></i></button>
+                        <button type="button" onclick="changeZoom(0.25)" class="w-10 h-10 bg-white hover:bg-gray-100 rounded-full text-gray-700 shadow flex items-center justify-center transition-transform active:scale-95"><i class="fas fa-search-plus"></i></button>
+                    </div>
+                `,
                 showConfirmButton: false,
                 showCloseButton: true,
-                customClass: {
-                    image: 'max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg'
+                width: '600px',
+                didOpen: () => {
+                    window.currentZoom = 1;
                 }
             });
+        }
+
+        function changeZoom(delta) {
+            window.currentZoom = Math.max(0.5, Math.min(window.currentZoom + delta, 4));
+            document.getElementById('zoomedImg').style.transform = `scale(${window.currentZoom})`;
+        }
+
+        function resetZoom() {
+            window.currentZoom = 1;
+            document.getElementById('zoomedImg').style.transform = `scale(1)`;
+            const container = document.getElementById('zoomContainer');
+            if(container) container.scrollTo(0,0);
         }
 
         // --- 4. UI HELPERS ---
@@ -867,6 +887,7 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
+                // Proteksi batas file 2MB sebelum convert to base64
                 if(file.size > 2 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB.', 'warning');
                     input.value = '';
@@ -878,7 +899,7 @@
                     fileBase64 = reader.result; 
                     document.getElementById('fileName').innerText = file.name; 
                     
-                    // Show live preview directly in modal
+                    // Show live preview directly in modal with proper scaling
                     document.getElementById('previewImage').src = fileBase64;
                     document.getElementById('previewImage').classList.remove('hidden');
                     document.getElementById('uploadPlaceholder').classList.add('hidden');
