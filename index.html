@@ -419,7 +419,7 @@
                     </select>
                 </div>
                 
-                <!-- Updated Photo Upload Area with Label for safety -->
+                <!-- Updated Photo Upload Area with Auto Compress -->
                 <label class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors relative block">
                     <img id="previewImage" src="" class="hidden mx-auto w-28 h-28 rounded-full object-cover mb-2 border-4 border-indigo-100 shadow-sm" alt="Preview Foto">
                     <div id="uploadPlaceholder">
@@ -485,8 +485,13 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Password Baru (Abaikan jika tidak diubah)</label>
-                    <input type="password" id="editUserPassword" placeholder="***" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="editUserPassword" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                        <button type="button" onclick="togglePassword('editUserPassword', 'eyeEditUser')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600">
+                            <i id="eyeEditUser" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="p-4 border-t bg-gray-50 flex justify-end">
@@ -502,8 +507,10 @@
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
-            // Mencegah request OPTIONS pada beberapa browser saat menggunakan fetch POST murni.
-            // Tidak menyertakan header 'Content-Type' untuk memastikan string terkirim dengan mode simpel
+            if (GAS_WEB_APP_URL === "ISI_DENGAN_URL_WEB_APP_GAS_ANDA_DISINI") {
+                return Promise.reject(new Error("URL Web App GAS belum diisi di kode HTML!"));
+            }
+
             return fetch(GAS_WEB_APP_URL, {
                 redirect: "follow", 
                 method: 'POST',
@@ -1191,7 +1198,8 @@
                                 <p><strong>Role Akses:</strong> ${u.role}</p>
                                 <p><strong>Store Asal:</strong> ${u.store}</p>
                                 <p><strong>Jabatan:</strong> ${u.position}</p>
-                                <p><strong>Status:</strong> <span class="uppercase font-bold">${u.status}</span></p>
+                                <p><strong>Password:</strong> <span class="font-mono bg-gray-200 px-1 py-0.5 rounded text-gray-800 tracking-widest">${u.password}</span></p>
+                                <p><strong>Status:</strong> <span class="uppercase font-bold text-indigo-600">${u.status}</span></p>
                             </div>
                         `,
                         icon: 'info',
@@ -1218,7 +1226,13 @@
                     document.getElementById('editUserRole').value = u.role;
                     document.getElementById('editUserStore').value = u.store;
                     document.getElementById('editUserStatus').value = u.status;
-                    document.getElementById('editUserPassword').value = '';
+                    document.getElementById('editUserPassword').value = u.password || '';
+                    
+                    // Reset icon password to hidden state
+                    const inputPass = document.getElementById('editUserPassword');
+                    const iconPass = document.getElementById('eyeEditUser');
+                    inputPass.type = 'password';
+                    iconPass.classList.replace('fa-eye-slash', 'fa-eye');
                     
                     document.getElementById('editUserModal').classList.remove('hidden');
                 })
