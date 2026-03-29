@@ -733,7 +733,7 @@
 
         function filterEmployees() {
             const q = document.getElementById('searchEmployeeInput').value.toLowerCase();
-            const f = currentEmployees.filter(e => e.name.toLowerCase().includes(q) || e.id.includes(q) || e.position.toLowerCase().includes(q));
+            const f = currentEmployees.filter(e => e.name.toLowerCase().includes(q) || String(e.id).includes(q) || e.position.toLowerCase().includes(q));
             renderEmployees(f);
         }
 
@@ -743,10 +743,11 @@
             if(data.length === 0) { list.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak ada data Karyawan</div>`; return; }
 
             data.forEach(e => {
-                // Semua bisa edit, Delete hanya ADMIN
+                // Edit tombol tersedia untuk semua user (karyawan/manager/admin) yang berhak melihatnya
                 let actionBtns = `
                     <button onclick="openEditModal('${e.id}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded transition-colors" title="Edit Profil"><i class="fas fa-edit"></i></button>
                 `;
+                // Hapus tombol hanya untuk ADMIN
                 if (currentUser.role === 'ADMIN') {
                     actionBtns += `
                         <button onclick="deleteEmployee('${e.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded transition-colors" title="Hapus Karyawan"><i class="fas fa-trash"></i></button>
@@ -796,7 +797,8 @@
 
         function openEditModal(id) {
             isEditingEmp = true;
-            const emp = currentEmployees.find(e => e.id === id);
+            // Konversi e.id ke string agar cocok dengan id yang dikirimkan via onclick parameter
+            const emp = currentEmployees.find(e => String(e.id) === String(id));
             if(!emp) return;
             document.getElementById('modalTitle').innerText = "Edit Karyawan";
             document.getElementById('newId').value = emp.id;
@@ -806,7 +808,6 @@
             document.getElementById('newPos').value = emp.position;
             document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
             
-            // Simpan foto lama di variabel memory agar tidak hilang jika tidak update foto baru
             fileBase64 = emp.image || ''; 
             document.getElementById('employeeModal').classList.remove('hidden');
         }
@@ -816,7 +817,7 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
-                // Proteksi ukuran file (Max 2MB)
+                // Proteksi batas file 2MB sebelum convert to base64
                 if(file.size > 2 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB.', 'warning');
                     input.value = '';
@@ -922,7 +923,7 @@
         
         function filterHistory() {
             const q = document.getElementById('searchHistoryInput').value.toLowerCase();
-            renderHistory(currentHistory.filter(h => h.name.toLowerCase().includes(q) || h.empId.includes(q)));
+            renderHistory(currentHistory.filter(h => h.name.toLowerCase().includes(q) || String(h.empId).includes(q)));
         }
 
         function renderHistory(data) {
@@ -1038,7 +1039,7 @@
                     
                     users.forEach(u => {
                         const badgeClass = u.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800';
-                        const isSelf = u.id === currentUser.id;
+                        const isSelf = String(u.id) === String(currentUser.id);
                         
                         wrapper.innerHTML += `
                             <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1053,7 +1054,8 @@
                                         <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
                                     </div>
                                 </div>
-                                <div class="flex sm:flex-col gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                <div class="flex flex-wrap sm:flex-col gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                    <button onclick="generateQRCode('${u.id}', '${u.name}')" class="flex-1 bg-white border border-gray-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-qrcode"></i> Barcode</button>
                                     <button onclick="viewUserDetail('${u.id}')" class="flex-1 bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-eye"></i> Detail</button>
                                     <button onclick="openEditUserModal('${u.id}')" class="flex-1 bg-white border border-gray-300 text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-edit"></i> Edit</button>
                                     ${!isSelf ? `<button onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-gray-300 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fas fa-trash"></i> Hapus</button>` : ''}
@@ -1068,7 +1070,7 @@
         function viewUserDetail(id) {
             callBackend('getAllUsers')
                 .then(users => {
-                    const u = users.find(x => x.id === id);
+                    const u = users.find(x => String(x.id) === String(id));
                     if(!u) return;
                     Swal.fire({
                         title: 'Info Pengguna',
@@ -1091,7 +1093,7 @@
         function openEditUserModal(id) {
             callBackend('getAllUsers')
                 .then(users => {
-                    const u = users.find(x => x.id === id);
+                    const u = users.find(x => String(x.id) === String(id));
                     if(!u) return;
                     
                     document.getElementById('editUserId').value = u.id;
