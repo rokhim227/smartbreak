@@ -230,7 +230,10 @@
             <!-- SECTION: EMPLOYEES -->
             <div id="section-employees" class="hidden-section max-w-5xl mx-auto">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Data Karyawan</h2>
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        Data Karyawan
+                        <button onclick="forceLoadEmployees()" class="text-sm text-gray-400 hover:text-indigo-600 transition-colors" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                    </h2>
                     <button id="btnAddEmployee" type="button" onclick="openAddModal()" class="w-full md:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-md flex items-center justify-center">
                         <i class="fas fa-plus mr-2"></i> Tambah Karyawan
                     </button>
@@ -262,7 +265,6 @@
                             <input type="text" id="searchHistoryInput" onkeyup="filterHistory()" placeholder="Cari Nama atau ID..." class="bg-white border border-gray-300 rounded-lg focus:ring-indigo-500 block w-full pl-10 p-2.5 outline-none">
                         </div>
                         
-                        <!-- Modified Filter Grid with Store Dropdown -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Store</label>
@@ -351,8 +353,9 @@
 
                     <!-- Management Users Card Style -->
                     <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-400">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex justify-between items-center">
-                            <span><i class="fas fa-users-cog text-indigo-500 mr-2"></i> Manajemen Semua Pengguna</span>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-users-cog text-indigo-500 mr-2"></i> Manajemen Semua Pengguna
+                            <button onclick="forceLoadAdminData()" class="ml-3 text-sm text-gray-400 hover:text-indigo-600 transition-colors" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
                         </h2>
                         <div id="allUsersList" class="space-y-3">
                             <!-- Injected User Cards -->
@@ -541,8 +544,6 @@
 
         // --- 2. CORE FETCH WRAPPER ---
         function callBackend(action, ...params) {
-            // Mencegah request OPTIONS pada beberapa browser saat menggunakan fetch POST murni.
-            // Tidak menyertakan header 'Content-Type' untuk memastikan string terkirim dengan mode simpel
             return fetch(GAS_WEB_APP_URL, {
                 redirect: "follow", 
                 method: 'POST',
@@ -564,21 +565,28 @@
             });
         }
 
-        // --- 3. GLOBAL STATE ---
+        // --- 3. GLOBAL STATE & CACHING FLAGS ---
         let currentUser = null; 
+        
         let currentEmployees = [];
+        let isEmployeesLoaded = false; // Memori Caching
+
         let currentHistory = [];
+        let filteredHistory = [];
+        let isHistoryLoaded = false;   // Memori Caching
+        
+        let allUsersState = [];
+        let filteredUsersState = [];
+        let isAdminDataLoaded = false; // Memori Caching
+
         let isEditingEmp = false;
         let fileBase64 = '';
 
         // Pagination History
-        let filteredHistory = [];
         let historyPage = 1;
         const historyPerPage = 10;
 
         // Pagination Users Admin
-        let allUsersState = [];
-        let filteredUsersState = [];
         let usersPage = 1;
         const usersPerPage = 10;
 
@@ -604,9 +612,7 @@
                 showConfirmButton: false,
                 showCloseButton: true,
                 width: '600px',
-                didOpen: () => {
-                    window.currentZoom = 1;
-                }
+                didOpen: () => { window.currentZoom = 1; }
             });
         }
 
@@ -721,6 +727,11 @@
             }).then((res) => {
                 if(res.isConfirmed) {
                     currentUser = null;
+                    isEmployeesLoaded = false;
+                    isHistoryLoaded = false;
+                    isAdminDataLoaded = false;
+                    currentHistory = [];
+
                     document.getElementById('app-container').classList.add('hidden');
                     document.getElementById('login-section').classList.remove('hidden');
                     
@@ -756,40 +767,32 @@
 
             adminPanel.classList.add('hidden');
 
-            // Set History Store Filter Access
             const storeFilterObj = document.getElementById('filterStoreHistory');
 
             if (currentUser.role === 'KARYAWAN') {
                 navScan.classList.replace('flex', 'hidden');
                 navSet.classList.replace('flex', 'hidden');
                 btnAddEmp.classList.add('hidden');
-                
                 storeFilterObj.value = currentUser.store;
                 storeFilterObj.disabled = true;
-                
                 navTo('employees');
             } else if (currentUser.role === 'MANAGER') {
                 navScan.classList.replace('hidden', 'flex');
                 navSet.classList.replace('hidden', 'flex');
                 btnAddEmp.classList.remove('hidden');
-                
                 storeFilterObj.value = currentUser.store;
                 storeFilterObj.disabled = true;
-
                 navTo('dashboard');
             } else if (currentUser.role === 'ADMIN') {
                 navScan.classList.replace('hidden', 'flex');
                 navSet.classList.replace('hidden', 'flex');
                 btnAddEmp.classList.remove('hidden');
                 adminPanel.classList.remove('hidden');
-                
                 storeFilterObj.disabled = false;
                 storeFilterObj.value = 'ALL';
-
                 navTo('dashboard');
             }
 
-            // Sync Add/Edit forms default store
             if(currentUser.role === 'MANAGER' || currentUser.role === 'KARYAWAN') {
                 document.getElementById('newStore').value = currentUser.store;
                 document.getElementById('newStore').disabled = true;
@@ -798,6 +801,7 @@
             }
         }
 
+        // --- CACHING ROUTER ---
         function navTo(sectionId) {
             document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden-section'));
             document.getElementById(`section-${sectionId}`).classList.remove('hidden-section');
@@ -806,12 +810,18 @@
             const activeBtn = document.getElementById(`nav-${sectionId}`);
             if(activeBtn) activeBtn.classList.add('text-indigo-600');
 
-            if (sectionId === 'employees') loadEmployees();
-            if (sectionId === 'history') loadHistory();
+            if (sectionId === 'employees') {
+                if (!isEmployeesLoaded) loadEmployees();
+                else filterEmployees();
+            }
+            if (sectionId === 'history') {
+                // Jangan load paksa jika sudah ada datanya kecuali difilter manual
+                if (currentHistory.length === 0 && !isHistoryLoaded) loadHistory();
+                else filterHistory();
+            }
             if (sectionId === 'settings') {
                 if(currentUser.role === 'ADMIN') {
-                    loadAdminApprovals();
-                    loadAllUsers(); 
+                    if (!isAdminDataLoaded) loadAdminData();
                 }
             }
         }
@@ -828,12 +838,18 @@
                         data = data.filter(e => e.store === currentUser.store);
                     }
                     currentEmployees = data;
+                    isEmployeesLoaded = true; // Set loaded flag
                     renderEmployees(data);
                 })
                 .catch(err => {
                     document.getElementById('employeeLoading').classList.add('hidden');
                     Swal.fire('Gagal', 'Tidak dapat memuat data karyawan.', 'error');
                 });
+        }
+
+        function forceLoadEmployees() {
+            isEmployeesLoaded = false;
+            loadEmployees();
         }
 
         function filterEmployees() {
@@ -878,19 +894,16 @@
         }
 
         function generateQRCode(id, name) {
-            showLoading('Memuat Barcode...');
-            setTimeout(() => {
-                Swal.fire({
-                    title: name,
-                    html: `
-                        <p class="mb-4 text-sm text-gray-500">Employee ID: <strong>${id}</strong></p>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" class="mx-auto rounded-lg shadow-sm border p-2 w-48 h-48" alt="QR Code ${name}">
-                        <p class="mt-4 text-xs text-gray-400">Silakan scan kode di atas pada menu scanner.</p>
-                    `,
-                    confirmButtonText: 'Tutup',
-                    confirmButtonColor: '#4f46e5'
-                });
-            }, 200);
+            Swal.fire({
+                title: name,
+                html: `
+                    <p class="mb-4 text-sm text-gray-500">Employee ID: <strong>${id}</strong></p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" class="mx-auto rounded-lg shadow-sm border p-2 w-48 h-48" alt="QR Code ${name}">
+                    <p class="mt-4 text-xs text-gray-400">Silakan scan kode di atas pada menu scanner.</p>
+                `,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#4f46e5'
+            });
         }
 
         function openAddModal() {
@@ -900,7 +913,6 @@
             document.getElementById('newId').disabled = false;
             document.getElementById('newName').value = '';
             
-            // Reset image states
             document.getElementById('fileName').innerText = '';
             document.getElementById('previewImage').classList.add('hidden');
             document.getElementById('previewImage').src = '';
@@ -910,39 +922,30 @@
             document.getElementById('employeeModal').classList.remove('hidden');
         }
 
+        // INSTANT LOAD: Diambil dari memory lokal currentEmployees
         function openEditModal(id) {
-            showLoading('Memuat Data...');
+            const emp = currentEmployees.find(e => String(e.id) === String(id));
+            if(!emp) return Swal.fire('Error', 'Data Karyawan tidak ditemukan di memori!', 'error');
             
-            setTimeout(() => {
-                const emp = currentEmployees.find(e => String(e.id) === String(id));
-                
-                if(!emp) {
-                    Swal.fire('Error', 'Data Karyawan tidak ditemukan di sistem lokal!', 'error');
-                    return;
-                }
-                
-                document.getElementById('modalTitle').innerText = "Edit Karyawan";
-                document.getElementById('newId').value = emp.id;
-                document.getElementById('newId').disabled = true;
-                document.getElementById('newName').value = emp.name;
-                document.getElementById('newStore').value = emp.store;
-                document.getElementById('newPos').value = emp.position;
-                document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
-                
-                // Show existing image if any
-                fileBase64 = emp.image || ''; 
-                if (fileBase64) {
-                    document.getElementById('previewImage').src = fileBase64;
-                    document.getElementById('previewImage').classList.remove('hidden');
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                } else {
-                    document.getElementById('previewImage').classList.add('hidden');
-                    document.getElementById('uploadPlaceholder').classList.remove('hidden');
-                }
-                
-                Swal.close();
-                document.getElementById('employeeModal').classList.remove('hidden');
-            }, 300);
+            document.getElementById('modalTitle').innerText = "Edit Karyawan";
+            document.getElementById('newId').value = emp.id;
+            document.getElementById('newId').disabled = true;
+            document.getElementById('newName').value = emp.name;
+            document.getElementById('newStore').value = emp.store;
+            document.getElementById('newPos').value = emp.position;
+            document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
+            
+            fileBase64 = emp.image || ''; 
+            if (fileBase64) {
+                document.getElementById('previewImage').src = fileBase64;
+                document.getElementById('previewImage').classList.remove('hidden');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+            } else {
+                document.getElementById('previewImage').classList.add('hidden');
+                document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            }
+            
+            document.getElementById('employeeModal').classList.remove('hidden');
         }
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
@@ -950,7 +953,6 @@
         function previewFile(input) {
             const file = input.files[0];
             if(file) {
-                // Proteksi batas file 5MB sebelum dikompresi otomatis
                 if(file.size > 5 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.', 'warning');
                     input.value = '';
@@ -961,7 +963,6 @@
                 reader.onload = (e) => { 
                     const img = new Image();
                     img.onload = () => {
-                        // Kompresi Otomatis menggunakan HTML5 Canvas
                         const canvas = document.createElement('canvas');
                         const MAX_WIDTH = 400; 
                         const MAX_HEIGHT = 400;
@@ -969,15 +970,9 @@
                         let height = img.height;
 
                         if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                         } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
-                            }
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                         }
                         
                         canvas.width = width;
@@ -986,7 +981,7 @@
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         fileBase64 = canvas.toDataURL('image/webp', 0.8); 
-                        document.getElementById('fileName').innerText = file.name + ' (Terkonversi Base64)'; 
+                        document.getElementById('fileName').innerText = file.name + ' (Terkonversi)'; 
                         
                         document.getElementById('previewImage').src = fileBase64;
                         document.getElementById('previewImage').classList.remove('hidden');
@@ -1013,7 +1008,16 @@
                 .then(() => {
                     closeModal('employeeModal');
                     Swal.fire('Sukses', 'Data disimpan', 'success');
-                    loadEmployees();
+
+                    // OPTIMISTIC UPDATE: Update data lokal secara instan tanpa fetch ulang
+                    const idx = currentEmployees.findIndex(e => String(e.id) === String(emp.id));
+                    if (idx > -1) {
+                        currentEmployees[idx] = { ...currentEmployees[idx], ...emp };
+                    } else {
+                        currentEmployees.push(emp);
+                    }
+                    filterEmployees();
+                    isAdminDataLoaded = false; // Invalidate cache admin jika diperlukan di masa depan
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error'));
         }
@@ -1023,7 +1027,12 @@
                 if(r.isConfirmed) { 
                     showLoading('Menghapus...');
                     callBackend('deleteEmployee', id)
-                        .then(() => { Swal.fire('Terhapus', '', 'success'); loadEmployees(); })
+                        .then(() => { 
+                            Swal.fire('Terhapus', '', 'success'); 
+                            // OPTIMISTIC UPDATE:
+                            currentEmployees = currentEmployees.filter(e => String(e.id) !== String(id));
+                            filterEmployees();
+                        })
                         .catch(e => Swal.fire('Gagal', e.message, 'error'));
                 }
             });
@@ -1064,6 +1073,8 @@
                     log.innerHTML = `<div class="flex justify-between bg-gray-50 p-2 rounded border-l-4 ${color}">
                         <span class="font-bold text-gray-700">${res.name}</span><span class="text-xs font-bold">${type} - ${res.time}</span>
                     </div>` + log.innerHTML;
+
+                    isHistoryLoaded = false; // Reset history flag supaya direfresh saat tab History dibuka
                 })
                 .catch(err => {
                     Swal.fire('Gagal', err.message, 'error');
@@ -1079,19 +1090,17 @@
 
             callBackend('getHistory', start, end)
                 .then(data => {
-                    // Cek jika Karyawan/Manager, limit fetch result dari sisi JS juga
                     if (currentUser.role !== 'ADMIN') {
                         data = data.filter(h => h.store === currentUser.store);
                     }
                     currentHistory = data;
+                    isHistoryLoaded = true;
                     applyHistoryFilters();
                 })
                 .catch(err => Swal.fire('Error', err.message, 'error'));
         }
         
-        function filterHistory() {
-            applyHistoryFilters();
-        }
+        function filterHistory() { applyHistoryFilters(); }
 
         function applyHistoryFilters() {
             const q = document.getElementById('searchHistoryInput').value.toLowerCase();
@@ -1164,11 +1173,9 @@
             }
         }
 
+        // INSTANT LOAD
         function viewHist(name, out, inp, dur) {
-            showLoading('Memuat Info...');
-            setTimeout(() => {
-                Swal.fire('Detail', `Nama: ${name}<br>OUT: ${out}<br>IN: ${inp !== 'null' ? inp : '-'}<br>Durasi: ${dur !== 'null' ? dur+' Menit' : '-'}`, 'info');
-            }, 200);
+            Swal.fire('Detail', `Nama: ${name}<br>OUT: ${out}<br>IN: ${inp !== 'null' ? inp : '-'}<br>Durasi: ${dur !== 'null' ? dur+' Menit' : '-'}`, 'info');
         }
 
         function deleteHistoryRow(id) {
@@ -1176,7 +1183,12 @@
                 if(r.isConfirmed) {
                     showLoading('Menghapus Log...');
                     callBackend('deleteHistory', id)
-                        .then(() => { Swal.fire('Terhapus', '', 'success'); loadHistory(); })
+                        .then(() => { 
+                            Swal.fire('Terhapus', '', 'success'); 
+                            // OPTIMISTIC UPDATE:
+                            currentHistory = currentHistory.filter(h => String(h.id) !== String(id));
+                            applyHistoryFilters();
+                        })
                         .catch(e => Swal.fire('Gagal', e.message, 'error'));
                 }
             })
@@ -1198,52 +1210,56 @@
                 .catch(err => Swal.fire('Gagal', err.message, 'error'));
         }
 
-        function loadAdminApprovals() {
+        // COMBINED ADMIN LOAD
+        function loadAdminData() {
             document.getElementById('approvalList').innerHTML = '<div class="text-center py-4"><div class="loader mx-auto"></div></div>';
-            
-            callBackend('getAllUsers')
-                .then(users => {
-                    const pendings = users.filter(u => u.role === 'MANAGER' && u.status === 'pending');
-                    const wrapper = document.getElementById('approvalList');
-                    wrapper.innerHTML = '';
-                    
-                    if(pendings.length === 0) {
-                        wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada request approval.</div>';
-                        return;
-                    }
-                    
-                    pendings.forEach(u => {
-                        wrapper.innerHTML += `
-                            <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <h4 class="font-bold text-gray-900">${u.name}</h4>
-                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 uppercase">PENDING</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mb-2"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
-                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
-                                </div>
-                                <div class="flex gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
-                                    <button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-check mr-1"></i> Terima</button>
-                                    <button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-times mr-1"></i> Tolak</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                })
-                .catch(err => console.error("Gagal load approvals: ", err));
-        }
-
-        function loadAllUsers() {
             document.getElementById('allUsersList').innerHTML = '<div class="text-center py-4"><div class="loader mx-auto"></div></div>';
 
             callBackend('getAllUsers')
                 .then(users => {
                     allUsersState = users;
+                    isAdminDataLoaded = true;
                     usersPage = 1;
+                    
+                    renderAdminApprovals();
                     renderUsersPage();
                 })
-                .catch(err => console.error("Gagal load users: ", err));
+                .catch(err => console.error("Gagal load admin data: ", err));
+        }
+
+        function forceLoadAdminData() {
+            isAdminDataLoaded = false;
+            loadAdminData();
+        }
+
+        function renderAdminApprovals() {
+            const pendings = allUsersState.filter(u => u.role === 'MANAGER' && u.status === 'pending');
+            const wrapper = document.getElementById('approvalList');
+            wrapper.innerHTML = '';
+            
+            if(pendings.length === 0) {
+                wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada request approval.</div>';
+                return;
+            }
+            
+            pendings.forEach(u => {
+                wrapper.innerHTML += `
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-bold text-gray-900">${u.name}</h4>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 uppercase">PENDING</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-2"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-semibold"><i class="fas fa-store mr-1"></i>${u.store}</span>
+                        </div>
+                        <div class="flex gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                            <button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-check mr-1"></i> Terima</button>
+                            <button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"><i class="fas fa-times mr-1"></i> Tolak</button>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         function renderUsersPage() {
@@ -1304,63 +1320,48 @@
             }
         }
 
+        // INSTANT LOAD: Menggunakan local memory allUsersState
         function viewUserDetail(id) {
-            showLoading('Memuat Detail...');
-            callBackend('getAllUsers')
-                .then(users => {
-                    const u = users.find(x => String(x.id) === String(id));
-                    if(!u) {
-                        Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
-                        return;
-                    }
-                    Swal.fire({
-                        title: 'Info Pengguna',
-                        html: `
-                            <div class="text-left text-sm space-y-2 mt-4 bg-gray-50 p-4 rounded-lg border">
-                                <p><strong>ID:</strong> ${u.id}</p>
-                                <p><strong>Nama Lengkap:</strong> ${u.name}</p>
-                                <p><strong>Role Akses:</strong> ${u.role}</p>
-                                <p><strong>Store Asal:</strong> ${u.store}</p>
-                                <p><strong>Jabatan:</strong> ${u.position}</p>
-                                <p><strong>Password:</strong> <span class="font-mono bg-gray-200 px-1 py-0.5 rounded text-gray-800 tracking-widest">${u.password}</span></p>
-                                <p><strong>Status:</strong> <span class="uppercase font-bold text-indigo-600">${u.status}</span></p>
-                            </div>
-                        `,
-                        icon: 'info',
-                        confirmButtonText: 'Tutup',
-                        confirmButtonColor: '#4f46e5'
-                    });
-                })
-                .catch(err => Swal.fire('Gagal', err.message, 'error'));
+            const u = allUsersState.find(x => String(x.id) === String(id));
+            if(!u) return Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
+            
+            Swal.fire({
+                title: 'Info Pengguna',
+                html: `
+                    <div class="text-left text-sm space-y-2 mt-4 bg-gray-50 p-4 rounded-lg border">
+                        <p><strong>ID:</strong> ${u.id}</p>
+                        <p><strong>Nama Lengkap:</strong> ${u.name}</p>
+                        <p><strong>Role Akses:</strong> ${u.role}</p>
+                        <p><strong>Store Asal:</strong> ${u.store}</p>
+                        <p><strong>Jabatan:</strong> ${u.position}</p>
+                        <p><strong>Password:</strong> <span class="font-mono bg-gray-200 px-1 py-0.5 rounded text-gray-800 tracking-widest">${u.password}</span></p>
+                        <p><strong>Status:</strong> <span class="uppercase font-bold text-indigo-600">${u.status}</span></p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#4f46e5'
+            });
         }
 
+        // INSTANT LOAD
         function openEditUserModal(id) {
-            showLoading('Menyiapkan Editor...');
-            callBackend('getAllUsers')
-                .then(users => {
-                    Swal.close();
-                    const u = users.find(x => String(x.id) === String(id));
-                    if(!u) {
-                        Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
-                        return;
-                    }
-                    
-                    document.getElementById('editUserId').value = u.id;
-                    document.getElementById('editUserName').value = u.name;
-                    document.getElementById('editUserRole').value = u.role;
-                    document.getElementById('editUserStore').value = u.store;
-                    document.getElementById('editUserStatus').value = u.status;
-                    document.getElementById('editUserPassword').value = u.password || '';
-                    
-                    // Reset icon password to hidden state
-                    const inputPass = document.getElementById('editUserPassword');
-                    const iconPass = document.getElementById('eyeEditUser');
-                    inputPass.type = 'password';
-                    iconPass.classList.replace('fa-eye-slash', 'fa-eye');
-                    
-                    document.getElementById('editUserModal').classList.remove('hidden');
-                })
-                .catch(err => Swal.fire('Gagal', err.message, 'error'));
+            const u = allUsersState.find(x => String(x.id) === String(id));
+            if(!u) return Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
+                
+            document.getElementById('editUserId').value = u.id;
+            document.getElementById('editUserName').value = u.name;
+            document.getElementById('editUserRole').value = u.role;
+            document.getElementById('editUserStore').value = u.store;
+            document.getElementById('editUserStatus').value = u.status;
+            document.getElementById('editUserPassword').value = u.password || '';
+            
+            const inputPass = document.getElementById('editUserPassword');
+            const iconPass = document.getElementById('eyeEditUser');
+            inputPass.type = 'password';
+            iconPass.classList.replace('fa-eye-slash', 'fa-eye');
+            
+            document.getElementById('editUserModal').classList.remove('hidden');
         }
 
         function submitEditUser() {
@@ -1378,8 +1379,14 @@
                 .then(() => {
                     closeModal('editUserModal');
                     Swal.fire('Berhasil', 'Data pengguna berhasil diperbarui!', 'success');
-                    loadAdminApprovals();
-                    loadAllUsers();
+                    
+                    // OPTIMISTIC UPDATE
+                    const idx = allUsersState.findIndex(u => String(u.id) === String(updatedUser.id));
+                    if(idx > -1) allUsersState[idx] = {...allUsersState[idx], ...updatedUser};
+                    
+                    renderAdminApprovals();
+                    renderUsersPage();
+                    isEmployeesLoaded = false; // reset employee local data
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error'));
         }
@@ -1396,8 +1403,11 @@
                     callBackend('deleteUser', id)
                         .then(() => {
                             Swal.fire('Terhapus', 'Pengguna berhasil dihapus', 'success');
-                            loadAdminApprovals();
-                            loadAllUsers();
+                            // OPTIMISTIC UPDATE
+                            allUsersState = allUsersState.filter(u => String(u.id) !== String(id));
+                            renderAdminApprovals();
+                            renderUsersPage();
+                            isEmployeesLoaded = false;
                         })
                         .catch(e => Swal.fire('Gagal', e.message, 'error'));
                 }
@@ -1409,7 +1419,12 @@
             callBackend('approveManager', id)
                 .then(() => {
                     Swal.fire('Di-Approve','','success');
-                    loadAdminApprovals(); loadAllUsers();
+                    // OPTIMISTIC UPDATE
+                    const idx = allUsersState.findIndex(u => String(u.id) === String(id));
+                    if(idx > -1) allUsersState[idx].status = 'approved';
+                    
+                    renderAdminApprovals(); 
+                    renderUsersPage();
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error')); 
         }
@@ -1419,7 +1434,11 @@
             callBackend('rejectManager', id)
                 .then(() => {
                     Swal.fire('Ditolak dan Dihapus','','info');
-                    loadAdminApprovals(); loadAllUsers();
+                    // OPTIMISTIC UPDATE
+                    allUsersState = allUsersState.filter(u => String(u.id) !== String(id));
+                    
+                    renderAdminApprovals(); 
+                    renderUsersPage();
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error')); 
         }
@@ -1438,7 +1457,9 @@
                 .then(() => {
                     Swal.fire('Berhasil', 'Admin Baru ditambahkan', 'success');
                     e.target.reset();
-                    loadAllUsers();
+                    // OPTIMISTIC UPDATE
+                    allUsersState.push(adminData);
+                    renderUsersPage();
                 })
                 .catch(err => Swal.fire('Error', err.message, 'error'));
         }
@@ -1480,7 +1501,6 @@
         }, 1000);
 
         window.onload = () => {
-            // Load app logo on login screen
             callBackend('getSettings')
                 .then(s => {
                     if(s['Logo URL']) document.getElementById('loginAppLogo').src = s['Logo URL'];
