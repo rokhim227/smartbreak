@@ -353,10 +353,17 @@
 
                     <!-- Management Users Card Style -->
                     <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-400">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-users-cog text-indigo-500 mr-2"></i> Manajemen Semua Pengguna
-                            <button onclick="forceLoadAdminData()" class="ml-3 text-sm text-gray-400 hover:text-indigo-600 transition-colors" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex justify-between items-center">
+                            <span><i class="fas fa-users-cog text-indigo-500 mr-2"></i> Manajemen Semua Pengguna</span>
+                            <button onclick="forceLoadAdminData()" class="text-sm text-gray-400 hover:text-indigo-600 transition-colors" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
                         </h2>
+
+                        <!-- SEARCH BAR MANAJEMEN PENGGUNA -->
+                        <div class="mb-4 relative">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
+                            <input type="text" id="searchUserInput" onkeyup="filterAllUsers()" placeholder="Cari nama, ID, role, atau store..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 block w-full pl-10 p-2.5 outline-none transition-all">
+                        </div>
+
                         <div id="allUsersList" class="space-y-3">
                             <!-- Injected User Cards -->
                         </div>
@@ -576,7 +583,7 @@
         let isHistoryLoaded = false;   // Memori Caching
         
         let allUsersState = [];
-        let filteredUsersState = [];
+        let filteredUsersState = []; // State untuk hasil pencarian user admin
         let isAdminDataLoaded = false; // Memori Caching
 
         let isEditingEmp = false;
@@ -1218,6 +1225,7 @@
             callBackend('getAllUsers')
                 .then(users => {
                     allUsersState = users;
+                    filteredUsersState = users; // Initialize filtered state
                     isAdminDataLoaded = true;
                     usersPage = 1;
                     
@@ -1230,6 +1238,19 @@
         function forceLoadAdminData() {
             isAdminDataLoaded = false;
             loadAdminData();
+        }
+
+        // FUNGSI PENCARIAN REAL-TIME USER 
+        function filterAllUsers() {
+            const q = document.getElementById('searchUserInput').value.toLowerCase();
+            filteredUsersState = allUsersState.filter(u => {
+                return (u.name && u.name.toLowerCase().includes(q)) || 
+                       String(u.id).includes(q) || 
+                       (u.role && u.role.toLowerCase().includes(q)) || 
+                       (u.store && u.store.toLowerCase().includes(q));
+            });
+            usersPage = 1;
+            renderUsersPage();
         }
 
         function renderAdminApprovals() {
@@ -1266,19 +1287,19 @@
             const wrapper = document.getElementById('allUsersList');
             wrapper.innerHTML = '';
             
-            if(allUsersState.length === 0) {
-                wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada data.</div>';
+            if(filteredUsersState.length === 0) {
+                wrapper.innerHTML = '<div class="text-center text-gray-400 py-4 bg-gray-50 rounded-lg">Tidak ada data pengguna.</div>';
                 document.getElementById('usersPageInfo').innerText = `Halaman 1 dari 1`;
                 return;
             }
             
-            const totalPages = Math.ceil(allUsersState.length / usersPerPage);
+            const totalPages = Math.ceil(filteredUsersState.length / usersPerPage);
             if(usersPage < 1) usersPage = 1;
             if(usersPage > totalPages) usersPage = totalPages;
             
             const startIndex = (usersPage - 1) * usersPerPage;
             const endIndex = startIndex + usersPerPage;
-            const pageData = allUsersState.slice(startIndex, endIndex);
+            const pageData = filteredUsersState.slice(startIndex, endIndex);
             
             pageData.forEach(u => {
                 const badgeClass = u.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800';
@@ -1308,11 +1329,11 @@
                 `;
             });
             
-            document.getElementById('usersPageInfo').innerText = `Halaman ${usersPage} dari ${totalPages} (${allUsersState.length} Total)`;
+            document.getElementById('usersPageInfo').innerText = `Halaman ${usersPage} dari ${totalPages} (${filteredUsersState.length} Total)`;
         }
 
         function changeUsersPage(dir) {
-            const totalPages = Math.ceil(allUsersState.length / usersPerPage);
+            const totalPages = Math.ceil(filteredUsersState.length / usersPerPage);
             let newPage = usersPage + dir;
             if(newPage >= 1 && newPage <= totalPages) {
                 usersPage = newPage;
@@ -1385,7 +1406,7 @@
                     if(idx > -1) allUsersState[idx] = {...allUsersState[idx], ...updatedUser};
                     
                     renderAdminApprovals();
-                    renderUsersPage();
+                    filterAllUsers(); // Memperbarui daftar setelah di-edit
                     isEmployeesLoaded = false; // reset employee local data
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error'));
@@ -1406,7 +1427,7 @@
                             // OPTIMISTIC UPDATE
                             allUsersState = allUsersState.filter(u => String(u.id) !== String(id));
                             renderAdminApprovals();
-                            renderUsersPage();
+                            filterAllUsers(); // Memperbarui daftar setelah dihapus
                             isEmployeesLoaded = false;
                         })
                         .catch(e => Swal.fire('Gagal', e.message, 'error'));
@@ -1424,7 +1445,7 @@
                     if(idx > -1) allUsersState[idx].status = 'approved';
                     
                     renderAdminApprovals(); 
-                    renderUsersPage();
+                    filterAllUsers(); // Memperbarui daftar
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error')); 
         }
@@ -1438,7 +1459,7 @@
                     allUsersState = allUsersState.filter(u => String(u.id) !== String(id));
                     
                     renderAdminApprovals(); 
-                    renderUsersPage();
+                    filterAllUsers(); // Memperbarui daftar
                 })
                 .catch(err => Swal.fire('Gagal', err.message, 'error')); 
         }
@@ -1459,7 +1480,7 @@
                     e.target.reset();
                     // OPTIMISTIC UPDATE
                     allUsersState.push(adminData);
-                    renderUsersPage();
+                    filterAllUsers(); // Memperbarui daftar
                 })
                 .catch(err => Swal.fire('Error', err.message, 'error'));
         }
