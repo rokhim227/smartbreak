@@ -341,7 +341,7 @@
                     </div>
                     <div class="grad-5 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform">
                         <i class="fas fa-stopwatch absolute -right-2 -bottom-2 text-6xl opacity-20 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="text-purple-100 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata Durasi</h3>
+                        <h3 class="text-purple-100 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata Keterlambatan</h3>
                         <p id="statAvgDur" class="text-3xl font-extrabold">0<span class="text-sm font-medium ml-1 text-purple-200">mnt</span></p>
                     </div>
                 </div>
@@ -350,7 +350,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Line Chart (Trend) -->
                     <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 lg:col-span-2">
-                        <h3 class="text-sm font-extrabold text-slate-800 mb-4 flex items-center gap-2"><i class="fas fa-chart-line text-indigo-500"></i> Tren Absensi Istirahat Harian</h3>
+                        <h3 class="text-sm font-extrabold text-slate-800 mb-4 flex items-center gap-2"><i class="fas fa-chart-line text-indigo-500"></i> Tren Rata-rata Keterlambatan Harian</h3>
                         <div class="relative h-64 w-full">
                             <canvas id="lineChart"></canvas>
                         </div>
@@ -570,6 +570,7 @@
                                     <th class="px-6 py-4 text-left font-bold">Out</th>
                                     <th class="px-6 py-4 text-left font-bold">In</th>
                                     <th class="px-6 py-4 text-left font-bold">Durasi</th>
+                                    <th class="px-6 py-4 text-left font-bold">Telat</th>
                                     <th class="px-6 py-4 text-left font-bold">Status</th>
                                 </tr>
                             </thead>
@@ -1195,6 +1196,19 @@
             callBackend('getHistory', start, end)
                 .then(data => {
                     Swal.close();
+
+                    // REKALKULASI STATUS OTOMATIS: Koreksi data dari DB agar akurat dengan aturan jam malam
+                    data = data.map(d => {
+                        if (d.duration !== null && d.duration !== '') {
+                            const dur = parseInt(d.duration, 10);
+                            if (!isNaN(dur)) {
+                                const allowed = getAllowedDuration(d.out);
+                                d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu';
+                            }
+                        }
+                        return d;
+                    });
+
                     if (currentUser.role !== 'ADMIN') {
                         data = data.filter(h => h.store === currentUser.store);
                     }
@@ -1202,6 +1216,12 @@
                     processAnalyticsData();
                 })
                 .catch(err => Swal.fire({title:'Error', text:err.message, icon:'error', customClass:{popup:'rounded-3xl'}}));
+        }
+
+        function getAllowedDuration(outTimeStr) {
+            if (!outTimeStr || typeof outTimeStr !== 'string' || outTimeStr === '-') return 60;
+            const hour = parseInt(outTimeStr.split(':')[0], 10);
+            return (hour >= 0 && hour <= 5) ? 30 : 60;
         }
 
         function processAnalyticsData() {
@@ -1218,20 +1238,27 @@
             const onTimeCrews = new Set(data.filter(d => d.status === 'Tepat Waktu').map(d => d.empId)).size;
             const lateCrews = new Set(data.filter(d => d.status === 'Terlambat').map(d => d.empId)).size;
             
-            let totalDur = 0;
-            let countDur = 0;
+            let totalLateMin = 0;
+            let countLateBreaks = 0; // Ubah ke: Hanya hitung sesi break yang terbukti terlambat (> 0 menit)
             data.forEach(d => {
                 if(d.duration && !isNaN(d.duration)) {
-                    totalDur += parseInt(d.duration);
-                    countDur++;
+                    const dur = parseInt(d.duration);
+                    const allowedDur = getAllowedDuration(d.out);
+                    const late = Math.max(0, dur - allowedDur);
+                    
+                    if (late > 0) {
+                        totalLateMin += late;
+                        countLateBreaks++;
+                    }
                 }
             });
-            const avgDur = countDur > 0 ? Math.round(totalDur / countDur) : 0;
+            // Hasilnya = Total Menit Terlambat / Jumlah kejadian terlambat
+            const avgLate = countLateBreaks > 0 ? Math.round(totalLateMin / countLateBreaks) : 0;
 
             document.getElementById('statTotal').innerText = uniqueDays;
             document.getElementById('statOnTime').innerText = onTimeCrews;
             document.getElementById('statLate').innerText = lateCrews;
-            document.getElementById('statAvgDur').innerHTML = `${avgDur}<span class="text-sm font-medium ml-1 text-purple-200">mnt</span>`;
+            document.getElementById('statAvgDur').innerHTML = `${avgLate}<span class="text-sm font-medium ml-1 text-purple-200">mnt</span>`;
 
             // Data for Pie Chart (Berdasarkan Crew)
             const otherCrews = new Set(data.filter(d => d.status !== 'Tepat Waktu' && d.status !== 'Terlambat').map(d => d.empId)).size;
@@ -1244,16 +1271,31 @@
             const barDataOnTime = sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Tepat Waktu').map(d => d.empId)).size);
             const barDataLate = sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Terlambat').map(d => d.empId)).size);
 
-            // Data for Line Chart (Date trend - volume event absensi)
+            // Data for Line Chart (Rata-rata menit keterlambatan harian)
             const dateGroups = {};
             data.forEach(d => {
-                dateGroups[d.date] = (dateGroups[d.date] || 0) + 1;
+                if(d.duration && !isNaN(d.duration)) {
+                    const dur = parseInt(d.duration);
+                    const allowedDur = getAllowedDuration(d.out);
+                    const late = Math.max(0, dur - allowedDur);
+                    
+                    if (!dateGroups[d.date]) dateGroups[d.date] = { totalLate: 0, countLate: 0 };
+                    
+                    // Hanya kumpulkan dan hitung rata-rata dari data yang benar-benar terlambat pada hari itu
+                    if (late > 0) {
+                        dateGroups[d.date].totalLate += late;
+                        dateGroups[d.date].countLate++;
+                    }
+                }
             });
             const sortedDates = Object.keys(dateGroups).sort((a, b) => {
                 return new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')); 
             });
             const lineLabels = sortedDates;
-            const lineData = sortedDates.map(d => dateGroups[d]);
+            const lineData = sortedDates.map(d => {
+                const count = dateGroups[d].countLate;
+                return count > 0 ? Math.round(dateGroups[d].totalLate / count) : 0;
+            });
 
             // Rankings
             renderRankings(data);
@@ -1433,7 +1475,7 @@
                 data: {
                     labels: lineLabels,
                     datasets: [{
-                        label: 'Trend Harian',
+                        label: 'Rata-rata Keterlambatan (Mnt)',
                         data: lineData,
                         borderColor: '#6366f1',
                         backgroundColor: gradientLine,
@@ -1816,10 +1858,22 @@
             const start = document.getElementById('filterStart').value;
             const end = document.getElementById('filterEnd').value;
             
-            document.getElementById('historyBody').innerHTML = '<tr><td colspan="8" class="text-center py-10"><div class="loader mx-auto"></div><p class="text-sm mt-3 text-slate-400 font-medium">Memuat Laporan...</p></td></tr>';
+            document.getElementById('historyBody').innerHTML = '<tr><td colspan="9" class="text-center py-10"><div class="loader mx-auto"></div><p class="text-sm mt-3 text-slate-400 font-medium">Memuat Laporan...</p></td></tr>';
 
             callBackend('getHistory', start, end)
                 .then(data => {
+                    // REKALKULASI STATUS OTOMATIS: Koreksi data dari DB agar akurat dengan aturan jam malam
+                    data = data.map(d => {
+                        if (d.duration !== null && d.duration !== '') {
+                            const dur = parseInt(d.duration, 10);
+                            if (!isNaN(dur)) {
+                                const allowed = getAllowedDuration(d.out);
+                                d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu';
+                            }
+                        }
+                        return d;
+                    });
+
                     if (currentUser.role !== 'ADMIN') {
                         data = data.filter(h => h.store === currentUser.store);
                     }
@@ -1851,7 +1905,7 @@
             tbody.innerHTML = '';
             
             if(filteredHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Tidak ada riwayat presensi</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">Tidak ada riwayat presensi</td></tr>';
                 document.getElementById('historyPageInfo').innerText = `Halaman 1 dari 1`;
                 return;
             }
@@ -1870,6 +1924,13 @@
                     : (row.status === 'Terlambat' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200');
                 const safeName = row.name ? row.name.replace(/"/g, '&quot;') : '';
                 
+                const allowedDur = getAllowedDuration(row.out);
+                let lateMinText = '-';
+                if(row.duration && !isNaN(row.duration)) {
+                    const dur = parseInt(row.duration);
+                    if(dur > allowedDur) lateMinText = (dur - allowedDur) + ' <span class="text-[10px] font-normal text-slate-400">mnt</span>';
+                }
+
                 let delBtn = '';
                 if(currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') {
                     delBtn = `<button type="button" onclick="deleteHistoryRow('${row.id}')" class="w-7 h-7 rounded bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors shadow-sm ml-2 flex items-center justify-center"><i class="fas fa-trash text-[10px]"></i></button>`;
@@ -1891,7 +1952,8 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${row.date}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-amber-600 font-bold">${row.out}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-emerald-600 font-bold">${row.in || '-'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-bold">${row.duration ? row.duration+' <span class="text-xs font-normal text-slate-400">mnt</span>' : '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-bold">${row.duration ? row.duration+' <span class="text-[10px] font-normal text-slate-400">mnt</span>' : '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-bold">${lateMinText}</td>
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-1 text-[10px] rounded-full font-bold border uppercase tracking-wider ${badge}">${row.status}</span></td>
                     </tr>
                 `;
@@ -1910,6 +1972,8 @@
         }
 
         function viewHist(name, out, inp, dur) {
+            const allowedDur = getAllowedDuration(out);
+            const lateMin = (dur !== 'null' && parseInt(dur) > allowedDur) ? (parseInt(dur) - allowedDur) : 0;
             Swal.fire({
                 title: `<span class="text-lg font-bold text-slate-800">Detail Presensi</span>`,
                 html: `
@@ -1920,14 +1984,15 @@
                                 <span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Waktu Keluar</span>
                                 <span class="font-mono font-bold text-amber-600 text-lg">${out}</span>
                             </div>
+                        <div class="mt-4 pt-4 border-t border-slate-200 flex justify-between">
                             <div>
-                                <span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Waktu Kembali</span>
-                                <span class="font-mono font-bold text-emerald-600 text-lg">${inp !== 'null' ? inp : '-'}</span>
+                                <span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Durasi</span>
+                                <span class="font-bold text-slate-700">${dur !== 'null' ? dur+' Menit' : '-'}</span>
                             </div>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-slate-200">
-                            <span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Durasi</span>
-                            <span class="font-bold text-slate-700">${dur !== 'null' ? dur+' Menit' : '-'}</span>
+                            <div class="text-right">
+                                <span class="block text-[10px] uppercase font-bold text-red-400 tracking-wider">Keterlambatan</span>
+                                <span class="font-bold text-red-600">${lateMin > 0 ? lateMin + ' Menit' : '-'}</span>
+                            </div>
                         </div>
                     </div>
                 `,
@@ -2245,9 +2310,15 @@
             }
             
             const csv = [];
-            csv.push(["Store", "ID", "Nama", "Tanggal", "Out", "In", "Durasi (Menit)", "Status"].join(","));
+            csv.push(["Store", "ID", "Nama", "Tanggal", "Out", "In", "Durasi (Menit)", "Telat (Menit)", "Status"].join(","));
             
             filteredHistory.forEach(row => {
+                const allowedDur = getAllowedDuration(row.out);
+                let lateMin = 0;
+                if(row.duration && !isNaN(row.duration)) {
+                    lateMin = Math.max(0, parseInt(row.duration) - allowedDur);
+                }
+
                 csv.push([
                     `"${row.store}"`,
                     `"${row.empId}"`,
@@ -2256,6 +2327,7 @@
                     `"${row.out}"`,
                     `"${row.in}"`,
                     `"${row.duration || '-'}"`,
+                    `"${lateMin || '-'}"`,
                     `"${row.status}"`
                 ].join(","));
             });
