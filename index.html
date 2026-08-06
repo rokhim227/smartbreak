@@ -890,13 +890,13 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT FIREBASE -->
+    <!-- JAVASCRIPT FIREBASE MURNI TANPA APP SCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase dari User
+        // Konfigurasi Firebase Anda
         const firebaseConfig = {
             apiKey: "AIzaSyDERiTQVbd5R4bH10kLX6TuQqlEcgWb1Og",
             authDomain: "smartbreak-system-apps.firebaseapp.com",
@@ -918,16 +918,14 @@
             console.error("Gagal inisialisasi Firebase:", error);
         }
 
-        // Helper to get collections complying with the RULE 1
+        // Helper paths standar untuk akses koleksi publik sesuai arsitektur Firebase
         function getCol(name) {
             return collection(db, 'artifacts', appId, 'public', 'data', name);
         }
         function getDocRef(colName, docId) {
-            // Safe fallback jika docId undefined
             return doc(db, 'artifacts', appId, 'public', 'data', colName, String(docId || 'default'));
         }
 
-        // Global state mapping for inline HTML handlers
         window.currentUser = null; 
         window.currentEmployees = [];
         window.filteredEmployees = []; 
@@ -952,7 +950,6 @@
         
         window.currentZoom = 1;
 
-        // Ensure user is signed in anonymously to access Firestore
         async function ensureAuth() {
             if (!auth.currentUser) {
                 if (typeof __initial_auth_token !== 'undefined') {
@@ -973,7 +970,6 @@
             });
         };
 
-        // Initialize App Setting Defaults
         async function loadInitialSettings() {
             try {
                 await ensureAuth();
@@ -982,12 +978,11 @@
                     const s = settingsDoc.data();
                     if(s.logoUrl) document.getElementById('loginAppLogo').src = s.logoUrl;
                 }
-            } catch (e) { console.log('Info: Gunakan default setting.', e); }
+            } catch (e) { console.log('Info: Menggunakan pengaturan bawaan aplikasi.', e); }
         }
         
         window.onload = loadInitialSettings;
 
-        // Exposing UI toggles to window
         window.zoomImage = function(url, name) {
             Swal.fire({
                 title: `<span class="font-bold text-slate-800 text-lg">${name}</span>`,
@@ -1050,7 +1045,6 @@
         };
         window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); };
 
-
         window.handleLogin = async function(e) {
             e.preventDefault();
             const id = document.getElementById('loginUsername').value;
@@ -1060,7 +1054,7 @@
             try {
                 await ensureAuth();
                 
-                // Fetch user by using the entered Employee ID as Document ID
+                // Cari data akun di Koleksi "users" menggunakan Document ID
                 const userDocRef = getDocRef('users', id);
                 const userDoc = await getDoc(userDocRef);
                 let foundUser = null;
@@ -1073,13 +1067,13 @@
                 }
 
                 if (!foundUser) {
-                    // Check if they are admin using fallback hardcoded for safety during initial setup
+                    // AKSES SUPER ADMIN sesuai instruksi
                     if (id === '1001128' && pass === 'admin123') {
                         foundUser = { id: '1001128', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'Admin', status: 'approved', password: 'admin123', authUid: auth.currentUser.uid };
-                        // Create admin user in db if not exists
+                        // Buat data Super Admin ke Firebase jika baru pertama kali login
                         await setDoc(getDocRef('users', '1001128'), foundUser);
                     } else {
-                        throw new Error("ID atau Password salah.");
+                        throw new Error("ID atau Password salah, akun tidak ditemukan di Database.");
                     }
                 }
 
@@ -1087,7 +1081,7 @@
                     throw new Error("Akun Anda masih menunggu persetujuan Admin.");
                 }
                 
-                // Update their firebase Auth UID in their profile so security rules can identify them properly
+                // Link Firebase Auth UID di profil User
                 if(!foundUser.authUid || foundUser.authUid !== auth.currentUser.uid) {
                      foundUser.authUid = auth.currentUser.uid;
                      await updateDoc(getDocRef('users', id), { authUid: auth.currentUser.uid });
@@ -1141,17 +1135,17 @@
             window.showLoading('Membuat Akun...');
             try {
                 await ensureAuth();
-                
-                userData.authUid = auth.currentUser.uid; // Attach firebase auth ID for security rules
+                userData.authUid = auth.currentUser.uid; 
 
-                // Check if user ID already exists using their ID as Document Key
+                // Periksa apakah ID Karyawan ini sudah terdaftar
                 const userDocRef = getDocRef('users', userData.id);
                 const existingUser = await getDoc(userDocRef);
-                if (existingUser.exists()) throw new Error("ID ini sudah terdaftar.");
+                if (existingUser.exists()) throw new Error("ID ini sudah terdaftar sebelumnya.");
 
+                // Buat entri di Collection "users"
                 await setDoc(userDocRef, userData);
                 
-                // If it's a KARYAWAN, also auto-add to Employee Directory without image
+                // Bila role Karyawan, buat juga data direktori Karyawan secara otomatis
                 if(type === 'KARYAWAN') {
                     const empData = { id: userData.id, name: userData.name, store: userData.store, position: userData.position, image: '' };
                     await setDoc(getDocRef('employees', userData.id), empData);
@@ -1186,7 +1180,6 @@
 
                     document.getElementById('app-container').classList.add('hidden');
                     document.getElementById('login-section').classList.remove('hidden');
-                    
                     document.querySelectorAll('[id^="section"]').forEach(el => el.classList.add('hidden-section'));
                     
                     if (window.html5QrcodeScanner) {
@@ -1213,7 +1206,7 @@
                     }
                     if(s.title) document.getElementById('setAppTitle').value = s.title;
                 }
-            } catch(e) { console.log('No settings found'); }
+            } catch(e) { console.log('Memuat settings gagal'); }
             
             const navAnalytics = document.getElementById('nav-analytics');
             const navScan = document.getElementById('nav-dashboard');
@@ -1251,7 +1244,7 @@
                 navSet.classList.replace('hidden', 'flex');
                 btnAddEmp.classList.remove('hidden');
                 adminPanel.classList.remove('hidden');
-                migPanel.style.display = 'block'; // Show migration for admin
+                migPanel.style.display = 'block'; 
                 
                 [storeFilterHist, storeFilterAnalytic, storeFilterEmp].forEach(el => { el.value = 'ALL'; el.disabled = false; });
                 window.navTo('analytics');
@@ -1273,9 +1266,7 @@
             const activeBtn = document.getElementById(`nav-${sectionId}`);
             if(activeBtn) activeBtn.classList.add('active-nav');
 
-            if (sectionId === 'analytics') {
-                if (window.analyticsData.length === 0) window.loadAnalytics();
-            }
+            if (sectionId === 'analytics') { if (window.analyticsData.length === 0) window.loadAnalytics(); }
             if (sectionId === 'employees') {
                 if (!window.isEmployeesLoaded) window.loadEmployees();
                 else window.filterEmployees();
@@ -1291,7 +1282,6 @@
             }
         };
 
-        // --- STREAMING_CHUNK: Rewriting Analytics and DB fetches ---
         window.getAllowedDuration = function(outTimeStr) {
             if (!outTimeStr || typeof outTimeStr !== 'string' || outTimeStr === '-') return 60;
             const hour = parseInt(outTimeStr.split(':')[0], 10);
@@ -1307,7 +1297,6 @@
                 const histSnap = await getDocs(getCol('history'));
                 let data = [];
                 
-                // Convert string dates to JS Date for comparison
                 const parseDate = str => {
                     const [d,m,y] = str.split('/');
                     return new Date(`${y}-${m}-${d}`);
@@ -1318,7 +1307,6 @@
                 histSnap.forEach(doc => {
                     const d = doc.data();
                     const rowDate = parseDate(d.date);
-                    // Filter memory by date range
                     if(rowDate >= startDate && rowDate <= endDate) {
                         data.push(d);
                     }
@@ -1348,7 +1336,6 @@
 
         window.processAnalyticsData = function() {
             const data = window.analyticsData;
-            // Existing logic to process charts based on data array
             const selectedStore = document.getElementById('analyticsStore').value;
             
             let filtered = data;
@@ -1423,7 +1410,6 @@
         };
 
         window.renderRankings = function(data) {
-            // Rank Punctual (Most Tepat Waktu count)
             const punctualData = {};
             data.filter(d => d.status === 'Tepat Waktu').forEach(d => {
                 if(!punctualData[d.empId]) {
@@ -1461,7 +1447,6 @@
                 });
             }
 
-            // Rank Delayed (Frequency of Terlambat)
             const delayedData = {};
             data.filter(d => d.status === 'Terlambat').forEach(d => {
                 if(!delayedData[d.empId]) {
@@ -1565,7 +1550,6 @@
             });
         };
 
-        // --- STREAMING_CHUNK: Employees Management ---
         window.loadEmployees = async function() {
             document.getElementById('employeeList').innerHTML = '';
             document.getElementById('employeeLoading').classList.remove('hidden');
@@ -1855,7 +1839,6 @@
             });
         };
 
-        // --- STREAMING_CHUNK: Scanner Logic with Firestore ---
         window.html5QrcodeScanner = null;
         window.toggleCamera = function() {
             const readerDiv = document.getElementById('reader');
@@ -1977,7 +1960,6 @@
             }
         };
 
-        // --- STREAMING_CHUNK: History Logic ---
         window.loadHistory = async function() {
             const start = document.getElementById('filterStart').value;
             const end = document.getElementById('filterEnd').value;
@@ -2201,7 +2183,6 @@
             dl.click();
         };
 
-        // --- STREAMING_CHUNK: Admin Features and Excel Import ---
         window.saveAppSettings = async function() {
             const title = document.getElementById('setAppTitle').value;
             const logo = document.getElementById('setAppLogo').value;
@@ -2439,7 +2420,6 @@
                     window.showLoading('Menghapus Sistem...');
                     try {
                         await deleteDoc(getDocRef('users', id));
-                        // also delete employee record if exists
                         try { await deleteDoc(getDocRef('employees', id)); } catch(e){}
                         
                         Swal.fire({title:'Terhapus', text:'Pengguna berhasil dihapus', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
@@ -2538,7 +2518,6 @@
                     console.error(error);
                     Swal.fire('Gagal', 'Terjadi kesalahan saat memproses file: ' + error.message, 'error');
                 }
-                // Reset file input
                 event.target.value = '';
             };
             
@@ -2548,7 +2527,7 @@
         async function importEmployees(data) {
             let count = 0;
             for (const row of data) {
-                // Normalize keys (handle variations in column names like "ID", "id", "ID Karyawan")
+                // Support berbagai penamaan header di Excel
                 const id = row['ID'] || row['ID Karyawan'] || row['id'] || row['Id'];
                 const name = row['Nama'] || row['Nama Lengkap'] || row['name'] || row['Name'];
                 const store = row['Store'] || row['store'];
@@ -2564,21 +2543,22 @@
                         image: ''
                     };
                     
-                    // Add to Employees Collection
+                    // Simpan ke Firestore Koleksi Employees
                     await setDoc(getDocRef('employees', strId), empData);
                     
-                    // Auto create basic user account so they can login
+                    // Otomatis membuatkan akun log-in di Firestore Koleksi Users
                     const userData = {
                         id: strId,
                         name: empData.name,
                         store: empData.store,
                         position: empData.position,
-                        password: strId, // default password is ID
+                        password: strId, // Default password = ID
                         role: 'KARYAWAN',
                         status: 'approved',
-                        authUid: '' // Will be populated on their first login
+                        authUid: '' 
                     };
-                    // Only set if user doesn't exist to prevent overwriting custom passwords
+                    
+                    // Jangan timpa jika user sudah pernah setting password khusus
                     const userRef = getDocRef('users', strId);
                     const userDoc = await getDoc(userRef);
                     if (!userDoc.exists()) {
@@ -2589,7 +2569,7 @@
             }
             window.isEmployeesLoaded = false;
             window.isAdminDataLoaded = false;
-            Swal.fire('Berhasil', `${count} Karyawan berhasil diimport ke Database!`, 'success');
+            Swal.fire('Berhasil', `${count} Karyawan berhasil diimport ke Database Firebase!`, 'success');
         }
 
         async function importHistory(data) {
@@ -2603,15 +2583,14 @@
                 if (empId && dateRaw && outTime) {
                     const strEmpId = String(empId);
                     
-                    // Try to format date. Excel dates might come as numbers or formatted strings
+                    // Konversi format tanggal excel (Serial) ke JS Date jika diperlukan
                     let formattedDate = String(dateRaw);
                     if (typeof dateRaw === 'number') {
-                        // Excel serial date to JS Date
                         const d = new Date((dateRaw - (25567 + 2)) * 86400 * 1000);
                         formattedDate = d.toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric'});
                     }
 
-                    // Fetch employee info for name and store if missing from row
+                    // Isi otomatis Nama dan Store dari data yang ada di Firestore jika di Excel kosong
                     let empName = row['Nama'] || 'Unknown';
                     let store = row['Store'] || 'Unknown';
                     
@@ -2623,7 +2602,7 @@
                         }
                     } catch(e){}
 
-                    // Calculate duration
+                    // Hitung Kalkulasi Menit
                     let duration = null;
                     if (inTime && inTime !== '-') {
                         const outParts = String(outTime).split(':');
@@ -2644,7 +2623,7 @@
                         out: String(outTime),
                         in: inTime && inTime !== '-' ? String(inTime) : null,
                         duration: duration,
-                        timestamp: new Date().getTime() - count // slight offset to maintain order visually if imported in batch
+                        timestamp: new Date().getTime() - count 
                     };
 
                     await addDoc(getCol('history'), historyRecord);
@@ -2653,10 +2632,10 @@
             }
             window.isHistoryLoaded = false;
             window.analyticsData = [];
-            Swal.fire('Berhasil', `${count} Riwayat Absensi berhasil diimport ke Database!`, 'success');
+            Swal.fire('Berhasil', `${count} Riwayat Absensi berhasil diimport ke Database Firebase!`, 'success');
         }
 
-        // Clock Update
+        // Clock Update (Ticking in background)
         setInterval(() => {
             const d = new Date();
             const t = d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
