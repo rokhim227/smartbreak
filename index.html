@@ -1074,10 +1074,10 @@
 
                 if (!foundUser) {
                     // Check if they are admin using fallback hardcoded for safety during initial setup
-                    if (id === '1234567' && pass === 'admin123') {
-                        foundUser = { id: '1234567', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'Admin', status: 'approved', password: 'admin123', authUid: auth.currentUser.uid };
+                    if (id === '1001128' && pass === 'admin123') {
+                        foundUser = { id: '1001128', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'Admin', status: 'approved', password: 'admin123', authUid: auth.currentUser.uid };
                         // Create admin user in db if not exists
-                        await setDoc(getDocRef('users', '1234567'), foundUser);
+                        await setDoc(getDocRef('users', '1001128'), foundUser);
                     } else {
                         throw new Error("ID atau Password salah.");
                     }
