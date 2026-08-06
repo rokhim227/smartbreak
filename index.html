@@ -4,19 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SmartBreak Attendance</title>
-    <link rel="icon" href="https://www.dsppa.smartnusantara.com/image/cop.png" type="image/png">
     
-    <!-- Tailwind CSS -->
+    <link rel="icon" href="https://www.dsppa.smartnusantara.com/image/cop.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- HTML5 QR Code Scanner -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS (Untuk Import Excel) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -42,29 +36,26 @@
         
         .loader { border: 3px solid #f1f5f9; border-top: 3px solid #4f46e5; border-radius: 50%; width: 28px; height: 28px; animation: spin 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         .input-modern { background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.2s ease; }
         .input-modern:focus { background-color: #ffffff; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); outline: none; }
-
         .modern-table th { background-color: #f8fafc; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; color: #64748b; }
         .modern-table tr { transition: background-color 0.15s ease; border-bottom: 1px solid #f1f5f9; }
         .modern-table tr:hover { background-color: #f8fafc; }
 
         .grad-1 { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
         .grad-2 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .grad-3 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .grad-4 { background: linear-gradient(135deg, #ec4899 0%, #e11d48 100%); }
         .grad-5 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
     </style>
 </head>
 <body class="h-screen overflow-hidden text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
 
-    <!-- === LOGIN SECTION === -->
+    <!-- LOGIN SECTION -->
     <div id="login-section" class="fixed inset-0 z-50 login-bg flex items-center justify-center p-4 overflow-y-auto transition-opacity duration-500">
-        <div class="relative z-10 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-sm p-8 sm:p-10 animate-fade-in-up my-auto border border-white/20">
+        <div class="relative z-10 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-sm p-8 sm:p-10 animate-fade-in-up border border-white/20">
             <div class="text-center mb-8">
                 <div class="flex justify-center mb-6">
                     <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
@@ -74,7 +65,6 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">SmartBreak</h1>
                 <p class="text-sm text-slate-500 mt-1 font-medium">Sistem Presensi Istirahat</p>
             </div>
-            
             <form onsubmit="handleLogin(event)" class="space-y-5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Employee ID</label>
@@ -82,16 +72,14 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-500">
                             <i class="fas fa-id-badge text-slate-400"></i>
                         </div>
-                        <input type="text" id="loginUsername" class="input-modern pl-10 w-full rounded-xl p-3 text-sm" placeholder="Masukkan ID (Mis: 1001128)" required>
+                        <input type="text" id="loginUsername" class="input-modern pl-10 w-full rounded-xl p-3 text-sm" placeholder="ID (Contoh: 1001128)" required>
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Password</label>
                     <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <i class="fas fa-lock text-slate-400 group-focus-within:text-indigo-500"></i>
-                        </div>
-                        <input type="password" id="loginPassword" class="input-modern pl-10 w-full rounded-xl p-3 text-sm" placeholder="Masukkan password" required>
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><i class="fas fa-lock text-slate-400 group-focus-within:text-indigo-500"></i></div>
+                        <input type="password" id="loginPassword" class="input-modern pl-10 w-full rounded-xl p-3 text-sm" placeholder="Password" required>
                         <button type="button" onclick="togglePassword('loginPassword', 'eyeLogin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-indigo-600">
                             <i id="eyeLogin" class="fas fa-eye"></i>
                         </button>
@@ -107,21 +95,19 @@
         </div>
     </div>
 
-    <!-- === REGISTER SECTION === -->
+    <!-- REGISTER SECTION -->
     <div id="register-section" class="fixed inset-0 z-50 login-bg hidden overflow-y-auto transition-opacity duration-500">
         <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
             <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md p-8 animate-fade-in-up border border-white/20">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Registrasi Baru</h1>
-                    <button type="button" onclick="showLogin()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200"><i class="fas fa-times"></i></button>
+                    <button type="button" onclick="showLogin()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
                 </div>
-                
                 <form onsubmit="handleRegister(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Daftar Sebagai</label>
                         <select id="regType" onchange="updateJabatanOptions()" class="input-modern w-full rounded-xl p-3 text-sm">
-                            <option value="KARYAWAN">Karyawan</option>
-                            <option value="MANAGER">Manager</option>
+                            <option value="KARYAWAN">Karyawan</option><option value="MANAGER">Manager</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -130,7 +116,7 @@
                             <input type="text" id="regId" pattern="\d{7}" maxlength="7" class="input-modern w-full rounded-xl p-3 text-sm" placeholder="7 Digit Angka" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Asal Store</label>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Store</label>
                             <select id="regStore" class="input-modern w-full rounded-xl p-3 text-sm" required>
                                 <option value="">Pilih Store...</option>
                                 <option value="TLGTEU">TLGTEU</option><option value="MADSAP">MADSAP</option>
@@ -144,7 +130,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Nama Lengkap</label>
-                        <input type="text" id="regName" class="input-modern w-full rounded-xl p-3 text-sm" placeholder="Masukkan nama lengkap" required>
+                        <input type="text" id="regName" class="input-modern w-full rounded-xl p-3 text-sm" placeholder="Nama lengkap" required>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Jabatan</label>
@@ -153,39 +139,34 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Password</label>
                         <div class="relative group">
-                            <input type="password" id="regPassword" class="input-modern w-full rounded-xl p-3 text-sm" placeholder="Minimal 6 karakter" minlength="6" required>
+                            <input type="password" id="regPassword" class="input-modern w-full rounded-xl p-3 text-sm" placeholder="Min. 6 karakter" minlength="6" required>
                             <button type="button" onclick="togglePassword('regPassword', 'eyeReg')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-indigo-600">
                                 <i id="eyeReg" class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" class="w-full btn-primary font-bold py-3.5 rounded-xl shadow-lg mt-4 active:scale-[0.98]">
-                        Buat Akun <i class="fas fa-user-plus ml-2"></i>
-                    </button>
+                    <button type="submit" class="w-full btn-primary font-bold py-3.5 rounded-xl shadow-lg mt-4 active:scale-[0.98]">Buat Akun</button>
                 </form>
-                <div class="mt-6 text-center text-sm text-slate-500 font-medium border-t border-slate-100 pt-6">
-                    Sudah punya akun? <button type="button" onclick="showLogin()" class="text-indigo-600 font-bold hover:text-indigo-700">Login sekarang</button>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- === APP CONTAINER === -->
+    <!-- APP CONTAINER -->
     <div id="app-container" class="hidden flex flex-col h-screen overflow-hidden transition-opacity duration-300">
         
-        <!-- Header -->
+        <!-- HEADER -->
         <header class="glass-header shadow-sm z-30 sticky top-0">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                     <div class="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 hidden sm:block">
-                        <img id="appLogo" src="" alt="Logo" class="h-9 w-auto max-w-[120px] object-contain transition-all duration-300">
+                        <img id="appLogo" src="" alt="Logo" class="h-9 w-auto max-w-[120px] object-contain">
                     </div>
                     <div>
-                        <h1 id="appTitle" class="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Loading...</h1>
+                        <h1 id="appTitle" class="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">SmartBreak</h1>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span id="userRoleLabel" class="text-xs font-medium text-slate-500">Workspace</span>
                             <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span id="storeLabel" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Store</span>
+                            <span id="storeLabel" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase">Store</span>
                         </div>
                     </div>
                 </div>
@@ -195,7 +176,7 @@
                         <div id="clockTime" class="text-lg font-bold text-slate-700 font-mono tracking-tight leading-none">00:00:00</div>
                     </div>
                     <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
-                    <button type="button" onclick="doLogout()" class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100" title="Logout">
+                    <button type="button" onclick="doLogout()" class="w-10 h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100" title="Logout">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
@@ -204,14 +185,10 @@
 
         <!-- Mobile Info Bar -->
         <div class="sm:hidden bg-white shadow-sm px-4 py-2.5 flex justify-between items-center z-20 border-b border-slate-100">
-             <div class="flex items-center gap-2">
-                 <i class="fas fa-store text-indigo-400 text-sm"></i>
-                 <div id="storeLabelMobile" class="text-xs text-slate-700 font-bold uppercase tracking-wide"></div>
-             </div>
+             <div class="flex items-center gap-2"><i class="fas fa-store text-indigo-400 text-sm"></i><div id="storeLabelMobile" class="text-xs text-slate-700 font-bold uppercase"></div></div>
              <div id="clockTimeMobile" class="text-sm font-bold text-slate-700 font-mono bg-slate-100 px-3 py-1 rounded-full"></div>
         </div>
 
-        <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-28 relative scroll-smooth">
 
             <!-- SECTION: ANALYTICS -->
@@ -219,10 +196,7 @@
                 <!-- Filter Section -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-                            <i class="fas fa-chart-pie text-indigo-500"></i> Dashboard Analytics
-                        </h2>
-                        <p class="text-sm text-slate-500 font-medium">Ringkasan performa absensi</p>
+                        <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2"><i class="fas fa-chart-pie text-indigo-500"></i> Dashboard Analytics</h2>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                         <div class="flex-1 md:flex-none">
@@ -237,42 +211,28 @@
                                 <option value="PNGDIP">PNGDIP</option>
                             </select>
                         </div>
-                        <div class="flex-1 md:flex-none">
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mulai</label>
-                            <input type="date" id="analyticsStart" class="input-modern w-full rounded-xl p-2 text-sm font-medium">
-                        </div>
-                        <div class="flex-1 md:flex-none">
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sampai</label>
-                            <input type="date" id="analyticsEnd" class="input-modern w-full rounded-xl p-2 text-sm font-medium">
-                        </div>
-                        <div class="flex-none self-end">
-                            <button type="button" onclick="loadAnalytics()" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 h-[38px]">
-                                <i class="fas fa-sync-alt"></i> Analisa
-                            </button>
-                        </div>
+                        <div class="flex-1 md:flex-none"><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mulai</label><input type="date" id="analyticsStart" class="input-modern w-full rounded-xl p-2 text-sm font-medium"></div>
+                        <div class="flex-1 md:flex-none"><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sampai</label><input type="date" id="analyticsEnd" class="input-modern w-full rounded-xl p-2 text-sm font-medium"></div>
+                        <div class="flex-none self-end"><button type="button" onclick="loadAnalytics()" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-bold shadow-sm h-[38px]"><i class="fas fa-sync-alt"></i> Analisa</button></div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="grad-1 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <div class="grad-1 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group">
                         <i class="fas fa-calendar-day absolute -right-2 -bottom-2 text-6xl opacity-20"></i>
-                        <h3 class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1">Total Hari</h3>
-                        <p id="statTotal" class="text-3xl font-extrabold">0</p>
+                        <h3 class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1">Total Hari</h3><p id="statTotal" class="text-3xl font-extrabold">0</p>
                     </div>
-                    <div class="grad-2 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <div class="grad-2 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group">
                         <i class="fas fa-user-check absolute -right-2 -bottom-2 text-6xl opacity-20"></i>
-                        <h3 class="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">Tepat Waktu</h3>
-                        <p id="statOnTime" class="text-3xl font-extrabold">0</p>
+                        <h3 class="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">Tepat Waktu</h3><p id="statOnTime" class="text-3xl font-extrabold">0</p>
                     </div>
-                    <div class="grad-4 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <div class="grad-4 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group">
                         <i class="fas fa-user-times absolute -right-2 -bottom-2 text-6xl opacity-20"></i>
-                        <h3 class="text-red-100 text-xs font-bold uppercase tracking-wider mb-1">Terlambat</h3>
-                        <p id="statLate" class="text-3xl font-extrabold">0</p>
+                        <h3 class="text-red-100 text-xs font-bold uppercase tracking-wider mb-1">Terlambat</h3><p id="statLate" class="text-3xl font-extrabold">0</p>
                     </div>
-                    <div class="grad-5 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <div class="grad-5 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden group">
                         <i class="fas fa-stopwatch absolute -right-2 -bottom-2 text-6xl opacity-20"></i>
-                        <h3 class="text-purple-100 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata Keterlambatan</h3>
-                        <p id="statAvgDur" class="text-3xl font-extrabold">0<span class="text-sm font-medium ml-1 text-purple-200">mnt</span></p>
+                        <h3 class="text-purple-100 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata Telat</h3><p id="statAvgDur" class="text-3xl font-extrabold">0<span class="text-sm font-medium ml-1 text-purple-200">mnt</span></p>
                     </div>
                 </div>
 
@@ -294,77 +254,40 @@
 
             <!-- SECTION: SCANNER -->
             <div id="section-dashboard" class="hidden-section max-w-lg mx-auto space-y-6">
-                <div class="bg-gradient-to-r from-indigo-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 mb-6 relative overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
                     <div class="relative z-10">
                         <h2 class="text-sm font-medium text-indigo-100 mb-1">Modul Scanner</h2>
-                        <h3 class="text-2xl font-bold tracking-tight">Absensi Break Karyawan</h3>
+                        <h3 class="text-2xl font-bold tracking-tight">Absensi Istirahat</h3>
                     </div>
                     <i class="fas fa-qrcode absolute -right-4 -bottom-4 text-7xl text-white opacity-10 transform -rotate-12"></i>
                 </div>
-
                 <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 text-center relative z-10">
                     <div class="relative mb-6">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-search text-slate-400"></i>
-                        </div>
-                        <input type="text" id="scanInput" placeholder="Scan QR / Ketik ID" 
-                           class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 focus:outline-none transition-all text-center text-lg font-mono font-bold placeholder-slate-400 text-slate-700">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fas fa-search text-slate-400"></i></div>
+                        <input type="text" id="scanInput" placeholder="Scan QR / Ketik ID" class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 outline-none text-center text-lg font-mono font-bold text-slate-700">
                     </div>
-                    
-                    <button type="button" onclick="toggleCamera()" class="mb-6 inline-flex items-center justify-center gap-2 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-5 py-2.5 rounded-full transition-colors w-full sm:w-auto">
-                        <i class="fas fa-camera text-base"></i> Buka Kamera Scanner
-                    </button>
-                    
+                    <button type="button" onclick="toggleCamera()" class="mb-6 inline-flex items-center justify-center gap-2 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-5 py-2.5 rounded-full transition-colors w-full sm:w-auto"><i class="fas fa-camera text-base"></i> Buka Kamera</button>
                     <div id="reader" class="hidden w-full rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 mb-6 shadow-inner bg-slate-50"></div>
-
                     <div class="grid grid-cols-2 gap-4">
-                        <button type="button" onclick="handleScan('OUT')" class="group relative overflow-hidden bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white py-4 sm:py-5 rounded-2xl shadow-sm font-bold text-sm sm:text-base flex flex-col items-center justify-center transition-all active:scale-95">
-                            <i class="fas fa-sign-out-alt mb-2 text-2xl sm:text-3xl transition-transform group-hover:-translate-x-1"></i> 
-                            <span>BREAK OUT</span>
-                        </button>
-                        <button type="button" onclick="handleScan('IN')" class="group relative overflow-hidden bg-emerald-500 border-2 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600 py-4 sm:py-5 rounded-2xl shadow-sm font-bold text-sm sm:text-base flex flex-col items-center justify-center transition-all shadow-emerald-200 active:scale-95">
-                            <i class="fas fa-sign-in-alt mb-2 text-2xl sm:text-3xl transition-transform group-hover:translate-x-1"></i> 
-                            <span>BREAK IN</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fas fa-history"></i> Aktivitas Terakhir
-                        </h3>
-                    </div>
-                    <div id="miniLogList" class="space-y-2.5">
-                        <div class="text-center text-slate-400 text-sm py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">Belum ada aktivitas di sesi ini.</div>
+                        <button type="button" onclick="handleScan('OUT')" class="bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white py-4 sm:py-5 rounded-2xl font-bold text-sm flex flex-col items-center justify-center transition-all"><i class="fas fa-sign-out-alt mb-2 text-2xl"></i> BREAK OUT</button>
+                        <button type="button" onclick="handleScan('IN')" class="bg-emerald-500 border-2 border-emerald-500 text-white hover:bg-emerald-600 py-4 sm:py-5 rounded-2xl font-bold text-sm flex flex-col items-center justify-center transition-all"><i class="fas fa-sign-in-alt mb-2 text-2xl"></i> BREAK IN</button>
                     </div>
                 </div>
             </div>
 
             <!-- SECTION: EMPLOYEES -->
             <div id="section-employees" class="hidden-section max-w-7xl mx-auto">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                            Direktori Karyawan
-                            <button onclick="forceLoadEmployees()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"><i class="fas fa-sync-alt"></i></button>
-                        </h2>
-                        <p class="text-sm text-slate-500 mt-1 font-medium">Kelola data karyawan dan akses QR Code</p>
-                    </div>
-                    <button id="btnAddEmployee" type="button" onclick="openAddModal()" class="w-full md:w-auto btn-primary px-5 py-2.5 rounded-xl shadow-md flex items-center justify-center font-semibold text-sm">
-                        <i class="fas fa-plus mr-2"></i> Tambah Karyawan Baru
-                    </button>
+                <div class="flex justify-between items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">Direktori <button onclick="forceLoadEmployees()" class="w-8 h-8 rounded-full bg-slate-100 text-sm text-slate-500 hover:text-indigo-600"><i class="fas fa-sync-alt"></i></button></h2>
+                    <button id="btnAddEmployee" type="button" onclick="openAddModal()" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold"><i class="fas fa-plus mr-2"></i> Tambah</button>
                 </div>
-                
                 <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-sm mb-6 sticky top-0 z-10 border border-slate-100 flex flex-col md:flex-row gap-3">
                     <div class="relative group flex-1">
-                        <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <i class="fas fa-search text-slate-400"></i>
-                        </div>
-                        <input type="text" id="searchEmployeeInput" onkeyup="filterEmployees()" placeholder="Cari nama, ID..." class="input-modern bg-slate-50 text-slate-800 text-sm font-medium rounded-xl block w-full pl-12 p-3">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none"><i class="fas fa-search text-slate-400"></i></div>
+                        <input type="text" id="searchEmployeeInput" onkeyup="filterEmployees()" placeholder="Cari nama, ID..." class="input-modern bg-slate-50 block w-full pl-12 p-3 text-sm">
                     </div>
                     <div class="md:w-64">
-                        <select id="filterEmpStore" onchange="filterEmployees()" class="input-modern bg-slate-50 text-slate-800 text-sm font-medium rounded-xl block w-full p-3">
+                        <select id="filterEmpStore" onchange="filterEmployees()" class="input-modern bg-slate-50 text-sm rounded-xl block w-full p-3">
                             <option value="ALL">Semua Store</option>
                             <option value="TLGTEU">TLGTEU</option><option value="MADSAP">MADSAP</option>
                             <option value="KDRJOY">KDRJOY</option><option value="KDRURI">KDRURI</option>
@@ -375,203 +298,25 @@
                         </select>
                     </div>
                 </div>
-
-                <div id="employeeLoading" class="hidden text-center py-12"><div class="loader mx-auto"></div><p class="text-slate-400 text-sm mt-3 font-medium">Memuat data...</p></div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6" id="employeeList">
-                    <!-- Cards Injected -->
-                </div>
-                
-                <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <span id="empPageInfo" class="text-sm text-slate-500 font-semibold bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-100">Halaman 1 dari 1</span>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button type="button" onclick="changeEmpPage(-1)" class="flex-1 sm:flex-none px-5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold shadow-sm active:scale-95">Prev</button>
-                        <button type="button" onclick="changeEmpPage(1)" class="flex-1 sm:flex-none px-5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold shadow-sm active:scale-95">Next</button>
+                <div id="employeeLoading" class="hidden text-center py-12"><div class="loader mx-auto"></div></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="employeeList"></div>
+                <div class="mt-6 pt-5 border-t border-slate-200 flex justify-between">
+                    <span id="empPageInfo" class="text-sm text-slate-500 font-semibold bg-white px-4 py-2 rounded-lg border border-slate-100">Hal 1 dari 1</span>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="changeEmpPage(-1)" class="px-5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold">Prev</button>
+                        <button type="button" onclick="changeEmpPage(1)" class="px-5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold">Next</button>
                     </div>
                 </div>
             </div>
 
             <!-- SECTION: HISTORY -->
             <div id="section-history" class="hidden-section max-w-7xl mx-auto">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-alt text-lg"></i></div>
-                        Laporan Absensi
-                    </h2>
-                </div>
-                    
-                <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-slate-100">
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div class="md:col-span-4 relative group">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none"><i class="fas fa-search text-slate-400"></i></div>
-                            <input type="text" id="searchHistoryInput" onkeyup="filterHistory()" placeholder="Cari Nama atau ID..." class="input-modern w-full rounded-xl pl-10 p-3 text-sm font-medium">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Store</label>
-                            <select id="filterStoreHistory" onchange="filterHistory()" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                                <option value="ALL">Semua Store</option>
-                                <option value="TLGTEU">TLGTEU</option><option value="MADSAP">MADSAP</option>
-                                <option value="KDRJOY">KDRJOY</option><option value="KDRURI">KDRURI</option>
-                                <option value="KDRKED">KDRKED</option><option value="NJKDIP">NJKDIP</option>
-                                <option value="NGWDIP">NGWDIP</option><option value="MGTHAR">MGTHAR</option>
-                                <option value="BLTTAN">BLTTAN</option><option value="TLGBLI">TLGBLI</option>
-                                <option value="PNGDIP">PNGDIP</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Dari Tanggal</label>
-                            <input type="date" id="filterStart" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Sampai</label>
-                            <input type="date" id="filterEnd" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                        </div>
-                        <div class="md:col-span-2 flex gap-2">
-                            <button type="button" onclick="loadHistory()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold py-3 transition-colors shadow-sm active:scale-95" title="Terapkan Filter"><i class="fas fa-filter"></i></button>
-                            <button type="button" onclick="exportHistoryToCSV()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold py-3 transition-colors shadow-sm active:scale-95" title="Export ke CSV"><i class="fas fa-file-csv"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 flex flex-col">
-                    <div class="overflow-x-auto no-scrollbar">
-                        <table class="min-w-full divide-y divide-slate-200 modern-table">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-4 text-left font-bold">Aksi</th>
-                                    <th class="px-6 py-4 text-left font-bold">Store</th>
-                                    <th class="px-6 py-4 text-left font-bold">ID / Nama</th>
-                                    <th class="px-6 py-4 text-left font-bold">Tanggal</th>
-                                    <th class="px-6 py-4 text-left font-bold">Out</th>
-                                    <th class="px-6 py-4 text-left font-bold">In</th>
-                                    <th class="px-6 py-4 text-left font-bold">Durasi</th>
-                                    <th class="px-6 py-4 text-left font-bold">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyBody" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
-                        </table>
-                    </div>
-                    <div class="p-4 sm:p-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between bg-slate-50/50 gap-4">
-                        <span id="historyPageInfo" class="text-sm text-slate-500 font-semibold">Halaman 1 dari 1</span>
-                        <div class="flex gap-2 w-full sm:w-auto">
-                            <button type="button" onclick="changeHistoryPage(-1)" class="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm">Prev</button>
-                            <button type="button" onclick="changeHistoryPage(1)" class="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm">Next</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION: SETTINGS & ADMIN -->
-            <div id="section-settings" class="hidden-section max-w-5xl mx-auto space-y-8">
-                
-                <!-- App Settings -->
-                <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
-                    <h2 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center">
-                        <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center mr-3"><i class="fas fa-cog"></i></div>
-                        Pengaturan Aplikasi
-                    </h2>
-                    <div class="space-y-5 max-w-lg">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Nama Aplikasi</label>
-                            <input type="text" id="setAppTitle" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">URL Logo</label>
-                            <input type="text" id="setAppLogo" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                        </div>
-                        <button type="button" onclick="saveAppSettings()" class="btn-primary w-full sm:w-auto px-8 py-3 rounded-xl font-bold transition-transform active:scale-95 shadow-md">Simpan Perubahan</button>
-                    </div>
-                </div>
-
-                <!-- Admin Panel -->
-                <div id="adminPanelWrapper" class="hidden space-y-8">
-                    
-                    <!-- EXCEL IMPORT MODULE -->
-                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 sm:p-8 rounded-3xl shadow-sm border border-emerald-100">
-                        <h2 class="text-xl font-extrabold text-emerald-900 mb-6 flex items-center">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3 shadow-sm"><i class="fas fa-file-excel"></i></div>
-                            Migrasi Data (Import Excel)
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Import Employees -->
-                            <div class="bg-white p-5 rounded-2xl border border-emerald-50 shadow-sm">
-                                <h3 class="font-bold text-slate-800 mb-2">Import Data Karyawan</h3>
-                                <p class="text-xs text-slate-500 mb-4">Format kolom: <span class="font-mono text-indigo-500">ID, Name, Store, Position</span></p>
-                                <input type="file" id="fileImportEmp" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 mb-4">
-                                <button onclick="importEmployeesExcel()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold shadow-sm transition-colors">Proses Karyawan</button>
-                            </div>
-                            
-                            <!-- Import History -->
-                            <div class="bg-white p-5 rounded-2xl border border-emerald-50 shadow-sm">
-                                <h3 class="font-bold text-slate-800 mb-2">Import Riwayat Absensi</h3>
-                                <p class="text-xs text-slate-500 mb-4">Format kolom: <span class="font-mono text-indigo-500">Date, EmpId, Name, Store, Out, In, Duration</span></p>
-                                <input type="file" id="fileImportHist" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 mb-4">
-                                <button onclick="importHistoryExcel()" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-xl text-sm font-bold shadow-sm transition-colors">Proses Absensi</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Management Users -->
-                    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 class="text-xl font-extrabold text-slate-800 flex items-center">
-                                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3"><i class="fas fa-users-cog"></i></div>
-                                Manajemen Akses Pengguna
-                            </h2>
-                            <button onclick="forceLoadAdminData()" class="btn-primary px-4 py-2 rounded-lg text-sm font-bold shadow-sm"><i class="fas fa-sync-alt mr-2"></i>Muat Ulang</button>
-                        </div>
-                        <div id="allUsersList" class="space-y-4"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="h-28 w-full"></div>
-        </main>
-
-        <!-- Bottom Navigation -->
-        <nav class="glass-nav fixed bottom-0 w-full z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
-            <div class="flex justify-around items-center h-16 sm:h-20 max-w-md sm:max-w-7xl mx-auto px-2" id="bottomNavMenu">
-                <button id="nav-analytics" type="button" onclick="navTo('analytics')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-chart-pie text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div>
-                    <span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Dashboard</span>
-                </button>
-                <button id="nav-dashboard" type="button" onclick="navTo('dashboard')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-qrcode text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div>
-                    <span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Scan</span>
-                </button>
-                <button id="nav-employees" type="button" onclick="navTo('employees')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-users text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div>
-                    <span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Karyawan</span>
-                </button>
-                <button id="nav-history" type="button" onclick="navTo('history')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-history text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div>
-                    <span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Laporan</span>
-                </button>
-                <button id="nav-settings" type="button" onclick="navTo('settings')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-cog text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div>
-                    <span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Setting</span>
-                </button>
-            </div>
-        </nav>
-    </div>
-
-    <!-- Modals (Add Employee) -->
-    <div id="employeeModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 id="modalTitle" class="font-extrabold text-slate-800 text-lg">Form Karyawan</h3>
-                <button type="button" onclick="closeModal('employeeModal')" class="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-6 space-y-5">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">ID (7 Digit)</label>
-                        <input type="text" id="newId" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Store</label>
-                        <select id="newStore" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                            <option value="ALL">ALL (Admin)</option>
+                <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3 mb-6"><div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-alt text-lg"></i></div> Laporan Absensi</h2>
+                <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div class="md:col-span-4 relative group"><div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none"><i class="fas fa-search text-slate-400"></i></div><input type="text" id="searchHistoryInput" onkeyup="filterHistory()" placeholder="Cari Nama/ID..." class="input-modern w-full rounded-xl pl-10 p-3 text-sm font-medium"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Store</label>
+                        <select id="filterStoreHistory" onchange="filterHistory()" class="input-modern w-full rounded-xl p-3 text-sm">
+                            <option value="ALL">Semua Store</option>
                             <option value="TLGTEU">TLGTEU</option><option value="MADSAP">MADSAP</option>
                             <option value="KDRJOY">KDRJOY</option><option value="KDRURI">KDRURI</option>
                             <option value="KDRKED">KDRKED</option><option value="NJKDIP">NJKDIP</option>
@@ -580,27 +325,103 @@
                             <option value="PNGDIP">PNGDIP</option>
                         </select>
                     </div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Dari</label><input type="date" id="filterStart" class="input-modern w-full rounded-xl p-3 text-sm"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sampai</label><input type="date" id="filterEnd" class="input-modern w-full rounded-xl p-3 text-sm"></div>
+                    <div class="md:col-span-2 flex gap-2">
+                        <button type="button" onclick="loadHistory()" class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-bold shadow-sm" title="Filter"><i class="fas fa-filter"></i></button>
+                        <button type="button" onclick="exportHistoryToCSV()" class="flex-1 bg-emerald-500 text-white rounded-xl py-3 font-bold shadow-sm" title="Export CSV"><i class="fas fa-file-csv"></i></button>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Nama Lengkap</label>
-                    <input type="text" id="newName" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Jabatan</label>
-                    <select id="newPos" class="input-modern w-full rounded-xl p-3 text-sm font-medium">
-                        <option value="Area Manager">Area Manager</option>
-                        <option value="Crew">Crew</option><option value="QC">QC</option><option value="Stocker">Stocker</option>
-                        <option value="FL">FL</option><option value="FM">FM</option><option value="ASM">ASM</option><option value="SM">SM</option>
-                    </select>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 flex flex-col">
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="min-w-full divide-y divide-slate-200 modern-table">
+                            <thead><tr><th class="px-6 py-4 text-left">Aksi</th><th class="px-6 py-4 text-left">Store</th><th class="px-6 py-4 text-left">ID/Nama</th><th class="px-6 py-4 text-left">Tanggal</th><th class="px-6 py-4 text-left">Out</th><th class="px-6 py-4 text-left">In</th><th class="px-6 py-4 text-left">Durasi</th><th class="px-6 py-4 text-left">Status</th></tr></thead>
+                            <tbody id="historyBody" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t border-slate-100 flex justify-between bg-slate-50/50">
+                        <span id="historyPageInfo" class="text-sm text-slate-500 font-semibold">Hal 1 dari 1</span>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="changeHistoryPage(-1)" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm">Prev</button>
+                            <button type="button" onclick="changeHistoryPage(1)" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold shadow-sm">Next</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end">
-                <button type="button" onclick="submitEmployee()" class="btn-primary px-8 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 text-sm">Simpan Data</button>
+
+            <!-- SECTION: SETTINGS -->
+            <div id="section-settings" class="hidden-section max-w-5xl mx-auto space-y-8">
+                <!-- EXCEL IMPORT MODULE -->
+                <div id="adminPanelWrapper" class="hidden space-y-8">
+                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 sm:p-8 rounded-3xl shadow-sm border border-emerald-100">
+                        <h2 class="text-xl font-extrabold text-emerald-900 mb-6 flex items-center"><div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3 shadow-sm"><i class="fas fa-file-excel"></i></div> Migrasi Data (Import Excel)</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Import Employees -->
+                            <div class="bg-white p-5 rounded-2xl border border-emerald-50 shadow-sm">
+                                <h3 class="font-bold text-slate-800 mb-2">1. Import Data Akun & Karyawan</h3>
+                                <p class="text-[11px] text-slate-500 mb-4 leading-relaxed">Kolom wajib: <span class="font-mono text-indigo-500 bg-indigo-50 px-1 rounded">Employee ID</span>, <span class="font-mono text-indigo-500 bg-indigo-50 px-1 rounded">Full Name</span>, <span class="font-mono text-indigo-500 bg-indigo-50 px-1 rounded">Role</span>, <span class="font-mono text-indigo-500 bg-indigo-50 px-1 rounded">Store</span>, <span class="font-mono text-indigo-500 bg-indigo-50 px-1 rounded">Password</span></p>
+                                <input type="file" id="fileImportEmp" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 mb-4">
+                                <button onclick="importEmployeesExcel()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors">Proses Data Karyawan</button>
+                            </div>
+                            <!-- Import History -->
+                            <div class="bg-white p-5 rounded-2xl border border-teal-50 shadow-sm">
+                                <h3 class="font-bold text-slate-800 mb-2">2. Import Riwayat Absensi</h3>
+                                <p class="text-[11px] text-slate-500 mb-4 leading-relaxed">Kolom wajib: <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">Date</span>, <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">Employee ID</span>, <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">Name</span>, <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">Store</span>, <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">Out</span>, <span class="font-mono text-teal-600 bg-teal-50 px-1 rounded">In</span></p>
+                                <input type="file" id="fileImportHist" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 mb-4">
+                                <button onclick="importHistoryExcel()" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors">Proses Absensi</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Management Users -->
+                    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-extrabold text-slate-800 flex items-center"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3"><i class="fas fa-users-cog"></i></div> Manajemen Pengguna</h2><button onclick="forceLoadAdminData()" class="btn-primary px-4 py-2 rounded-lg text-sm font-bold shadow-sm"><i class="fas fa-sync-alt"></i> Muat Ulang</button></div>
+                        <div id="allUsersList" class="space-y-4"></div>
+                    </div>
+                </div>
             </div>
+            <div class="h-28 w-full"></div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="glass-nav fixed bottom-0 w-full z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+            <div class="flex justify-around items-center h-16 sm:h-20 max-w-md sm:max-w-7xl mx-auto px-2" id="bottomNavMenu">
+                <button id="nav-analytics" type="button" onclick="navTo('analytics')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-chart-pie text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div><span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Dashboard</span>
+                </button>
+                <button id="nav-dashboard" type="button" onclick="navTo('dashboard')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-qrcode text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div><span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Scan</span>
+                </button>
+                <button id="nav-employees" type="button" onclick="navTo('employees')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-users text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div><span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Karyawan</span>
+                </button>
+                <button id="nav-history" type="button" onclick="navTo('history')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-history text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div><span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Laporan</span>
+                </button>
+                <button id="nav-settings" type="button" onclick="navTo('settings')" class="nav-btn hidden flex-col items-center justify-center w-full h-full text-slate-400 hover:text-indigo-500 group relative">
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl group-[.active-nav]:bg-indigo-50"><i class="fas fa-cog text-xl sm:text-2xl mb-1 group-[.active-nav]:text-indigo-600"></i></div><span class="text-[10px] sm:text-xs font-bold mt-0.5 group-[.active-nav]:text-indigo-600">Setting</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="employeeModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center"><h3 id="modalTitle" class="font-extrabold text-slate-800 text-lg">Form</h3><button type="button" onclick="closeModal('employeeModal')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button></div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="newId" placeholder="ID (7 Digit)" class="input-modern w-full rounded-xl p-3 text-sm">
+                <input type="text" id="newName" placeholder="Nama Lengkap" class="input-modern w-full rounded-xl p-3 text-sm">
+                <select id="newStore" class="input-modern w-full rounded-xl p-3 text-sm">
+                    <option value="TLGTEU">TLGTEU</option><option value="MADSAP">MADSAP</option><option value="KDRJOY">KDRJOY</option><option value="KDRURI">KDRURI</option><option value="KDRKED">KDRKED</option><option value="NJKDIP">NJKDIP</option><option value="NGWDIP">NGWDIP</option><option value="MGTHAR">MGTHAR</option><option value="BLTTAN">BLTTAN</option><option value="TLGBLI">TLGBLI</option><option value="PNGDIP">PNGDIP</option>
+                </select>
+                <select id="newPos" class="input-modern w-full rounded-xl p-3 text-sm">
+                    <option value="Crew">Crew</option><option value="QC">QC</option><option value="Stocker">Stocker</option><option value="Area Manager">Area Manager</option><option value="FL">FL</option><option value="FM">FM</option><option value="ASM">ASM</option><option value="SM">SM</option>
+                </select>
+            </div>
+            <div class="p-5 flex justify-end"><button type="button" onclick="submitEmployee()" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm">Simpan</button></div>
         </div>
     </div>
 
-    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -614,176 +435,136 @@
             messagingSenderId: "420824849352",
             appId: "1:420824849352:web:8e9c74ba0efa6361423efd"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        
         const APP_ID = firebaseConfig.appId;
 
-        // Global Variables
+        // GLOBAL VARS
         window.currentUser = null;
         window.currentEmployees = []; window.filteredEmployees = []; window.isEmployeesLoaded = false;
         window.currentHistory = []; window.filteredHistory = []; window.isHistoryLoaded = false;
         window.allUsersState = []; window.isAdminDataLoaded = false;
         window.analyticsData = []; window.chartInstances = {};
-        
         window.empPage = 1; window.empPerPage = 20;
         window.historyPage = 1; window.historyPerPage = 10;
 
-        async function ensureAuth() {
-            if (!auth.currentUser) {
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Firebase Auth Error:", error);
-                    throw new Error("Gagal terhubung ke server otentikasi Firebase.");
-                }
-            }
-        }
-
+        // HELPERS
         window.showLoading = function(msg = 'Memproses...') {
             Swal.fire({ title: msg, allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'rounded-3xl' } });
         }
+        window.togglePassword = function(inputId, iconId) {
+            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
+            if (input.type === "password") { input.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
+            else { input.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+        }
+        window.showRegister = function() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('register-section').classList.remove('hidden'); window.updateJabatanOptions(); }
+        window.showLogin = function() { document.getElementById('register-section').classList.add('hidden'); document.getElementById('login-section').classList.remove('hidden'); }
+        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); }
+        window.updateJabatanOptions = function() {
+            const type = document.getElementById('regType').value;
+            const select = document.getElementById('regJabatan');
+            select.innerHTML = '';
+            if (type === 'KARYAWAN') { ['Crew', 'Stocker', 'QC'].forEach(j => select.add(new Option(j, j))); } 
+            else { ['FL', 'FM', 'ASM', 'SM'].forEach(j => select.add(new Option(j, j))); }
+        }
+        window.getAllowedDuration = function(outTimeStr) {
+            if (!outTimeStr || typeof outTimeStr !== 'string' || outTimeStr === '-') return 60;
+            const hour = parseInt(outTimeStr.split(':')[0], 10);
+            return (hour >= 0 && hour <= 5) ? 30 : 60;
+        }
 
+        // AUTH & ROUTER
         window.handleLogin = async function(e) {
             e.preventDefault();
             const id = document.getElementById('loginUsername').value;
             const pass = document.getElementById('loginPassword').value;
+            window.showLoading('Autentikasi...');
 
-            showLoading('Autentikasi...');
             try {
-                await ensureAuth();
+                if(!auth.currentUser) await signInAnonymously(auth);
 
-                // SUPER ADMIN BYPASS
                 if (id === '1001128' && pass === 'admin123') {
-                    window.currentUser = { id: '1001128', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'System Admin', status: 'approved' };
-                    finishLogin(window.currentUser);
-                    return;
+                    window.currentUser = { id: '1001128', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'Area Manager', status: 'approved' };
+                    return window.finishLogin(window.currentUser);
                 }
 
-                // Cek DB
-                const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
-                const userSnap = await getDoc(userRef);
-
-                if (!userSnap.exists()) {
-                    throw new Error("ID tidak terdaftar.");
-                }
-
+                const userSnap = await getDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", id));
+                if (!userSnap.exists()) throw new Error("ID tidak terdaftar.");
                 const userData = userSnap.data();
                 if (userData.password !== pass) throw new Error("Password salah!");
-                if (userData.status === 'pending') throw new Error("Akun Anda belum disetujui oleh Admin.");
+                if (userData.status === 'pending') throw new Error("Akun Anda sedang menunggu persetujuan Admin.");
 
                 window.currentUser = userData;
-                finishLogin(userData);
-
+                window.finishLogin(userData);
             } catch (err) {
-                Swal.fire({title: 'Akses Ditolak', text: err.message, icon: 'error', customClass: {popup: 'rounded-3xl'}});
+                let msg = err.message;
+                if(msg.includes('admin-restricted') || msg.includes('insufficient')) msg = "Akses ditolak database. Pastikan 'Anonymous Sign-in' aktif di console Firebase dan Aturan Database disetel ke izinkan baca/tulis jika login.";
+                Swal.fire({title: 'Akses Ditolak', text: msg, icon: 'error', customClass: {popup: 'rounded-3xl'}});
             }
         }
 
-        function finishLogin(user) {
+        window.finishLogin = function(user) {
             document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
-            
-            setupEnvironment();
-            
+            document.getElementById('userRoleLabel').innerText = `${user.position} • ${user.name}`;
+            document.getElementById('storeLabel').innerText = user.store;
+            document.getElementById('storeLabelMobile').innerText = user.store;
+
+            const navAnalytics = document.getElementById('nav-analytics'), navScan = document.getElementById('nav-dashboard'), navSet = document.getElementById('nav-settings'), btnAddEmp = document.getElementById('btnAddEmployee'), adminPanel = document.getElementById('adminPanelWrapper');
+            const filters = [document.getElementById('filterStoreHistory'), document.getElementById('analyticsStore'), document.getElementById('filterEmpStore')];
+
+            if (user.role === 'KARYAWAN') {
+                navAnalytics.classList.replace('flex', 'hidden'); navScan.classList.replace('flex', 'hidden'); navSet.classList.replace('flex', 'hidden'); btnAddEmp.classList.add('hidden');
+                filters.forEach(el => { el.value = user.store; el.disabled = true; });
+            } else if (user.role === 'MANAGER') {
+                navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden');
+                filters.forEach(el => { el.value = user.store; el.disabled = true; });
+            } else if (user.role === 'ADMIN') {
+                navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden'); adminPanel.classList.remove('hidden');
+                filters.forEach(el => { el.value = 'ALL'; el.disabled = false; });
+            }
+
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             
-            const todayStr = new Date().toISOString().split('T')[0];
-            const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-            
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            const todayStr = today.toISOString().split('T')[0];
             document.getElementById('filterStart').value = todayStr; document.getElementById('filterEnd').value = todayStr;
             document.getElementById('analyticsStart').value = firstDay; document.getElementById('analyticsEnd').value = todayStr;
 
             Swal.fire({ icon: 'success', title: `Halo, ${user.name.split(' ')[0]}!`, timer: 2000, showConfirmButton: false, customClass: { popup: 'rounded-3xl' } });
+            window.navTo(user.role === 'KARYAWAN' ? 'employees' : 'analytics');
         }
 
         window.handleRegister = async function(e) {
             e.preventDefault();
             const type = document.getElementById('regType').value;
             const id = document.getElementById('regId').value;
-            const userData = {
-                id: id,
-                name: document.getElementById('regName').value,
-                store: document.getElementById('regStore').value,
-                position: document.getElementById('regJabatan').value,
-                password: document.getElementById('regPassword').value,
-                role: type,
-                status: type === 'MANAGER' ? 'pending' : 'approved',
-                createdAt: new Date().toISOString()
-            };
-
-            showLoading('Membuat Akun...');
+            const userData = { id: id, name: document.getElementById('regName').value, store: document.getElementById('regStore').value, position: document.getElementById('regJabatan').value, password: document.getElementById('regPassword').value, role: type, status: type === 'MANAGER' ? 'pending' : 'approved', createdAt: new Date().toISOString() };
+            window.showLoading('Mendaftar...');
             try {
-                await ensureAuth();
+                if(!auth.currentUser) await signInAnonymously(auth);
                 const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
                 const checkSnap = await getDoc(userRef);
                 if (checkSnap.exists()) throw new Error("Employee ID sudah terdaftar.");
 
-                await setDoc(userRef, userData);
-                
-                // Jika karyawan, masukkan ke database pegawai juga
+                let batch = writeBatch(db);
+                batch.set(userRef, userData);
                 if(type === 'KARYAWAN') {
-                    const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
-                    await setDoc(empRef, { id: id, name: userData.name, store: userData.store, position: userData.position });
+                    batch.set(doc(db, "artifacts", APP_ID, "public", "data", "employees", id), { id: id, name: userData.name, store: userData.store, position: userData.position, image: '' });
                 }
+                await batch.commit();
 
-                const msg = type === 'MANAGER' ? 'Registrasi berhasil! Tunggu Admin melakukan approval.' : 'Registrasi berhasil! Silakan login.';
-                Swal.fire({title:'Sukses', text: msg, icon:'success', customClass: {popup: 'rounded-3xl'}}).then(() => {
-                    document.getElementById('regPassword').value = '';
-                    showLogin();
-                });
-            } catch (err) {
-                Swal.fire({title:'Gagal', text: err.message, icon:'error', customClass: {popup: 'rounded-3xl'}});
-            }
+                Swal.fire({title:'Sukses', text: type === 'MANAGER' ? 'Tunggu approval Admin.' : 'Silakan login.', icon:'success', customClass: {popup: 'rounded-3xl'}}).then(() => { document.getElementById('regPassword').value = ''; window.showLogin(); });
+            } catch (err) { Swal.fire('Gagal', err.message, 'error'); }
         }
 
         window.doLogout = function() {
-            Swal.fire({
-                title: 'Akhiri Sesi?', icon: 'question', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Keluar',
-                customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl', cancelButton: 'rounded-xl' }
-            }).then((res) => {
-                if(res.isConfirmed) {
-                    window.location.reload();
-                }
+            Swal.fire({ title: 'Keluar?', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya', customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl', cancelButton: 'rounded-xl' } }).then((res) => {
+                if(res.isConfirmed) window.location.reload();
             });
-        }
-
-        function setupEnvironment() {
-            document.getElementById('userRoleLabel').innerText = `${currentUser.position} • ${currentUser.name}`;
-            document.getElementById('storeLabel').innerText = currentUser.store;
-            
-            // Load Settings
-            getDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo")).then(snap => {
-                if(snap.exists()) {
-                    const data = snap.data();
-                    document.getElementById('appTitle').innerText = data.title || 'SmartBreak';
-                    document.getElementById('appLogo').src = data.logo || '';
-                    document.getElementById('setAppTitle').value = data.title || '';
-                    document.getElementById('setAppLogo').value = data.logo || '';
-                }
-            }).catch(e => console.log('Info: Settings belum diset.'));
-
-            const navAnalytics = document.getElementById('nav-analytics'), navScan = document.getElementById('nav-dashboard'), navSet = document.getElementById('nav-settings'), btnAddEmp = document.getElementById('btnAddEmployee'), adminPanel = document.getElementById('adminPanelWrapper');
-
-            adminPanel.classList.add('hidden');
-            const filters = [document.getElementById('filterStoreHistory'), document.getElementById('analyticsStore'), document.getElementById('filterEmpStore'), document.getElementById('newStore')];
-
-            if (currentUser.role === 'KARYAWAN') {
-                navAnalytics.classList.replace('flex', 'hidden'); navScan.classList.replace('flex', 'hidden'); navSet.classList.replace('flex', 'hidden'); btnAddEmp.classList.add('hidden');
-                filters.forEach(el => { el.value = currentUser.store; el.disabled = true; });
-                navTo('employees');
-            } else if (currentUser.role === 'MANAGER') {
-                navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden');
-                filters.forEach(el => { el.value = currentUser.store; el.disabled = true; });
-                navTo('analytics');
-            } else if (currentUser.role === 'ADMIN') {
-                navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden'); adminPanel.classList.remove('hidden');
-                filters.forEach(el => { el.value = 'ALL'; el.disabled = false; });
-                navTo('analytics');
-            }
         }
 
         window.navTo = function(sectionId) {
@@ -793,108 +574,228 @@
             const activeBtn = document.getElementById(`nav-${sectionId}`);
             if(activeBtn) activeBtn.classList.add('active-nav');
 
-            if (sectionId === 'analytics' && window.analyticsData.length === 0) loadAnalytics();
-            if (sectionId === 'employees') { if (!window.isEmployeesLoaded) loadEmployees(); else filterEmployees(); }
-            if (sectionId === 'history') { if (!window.isHistoryLoaded) loadHistory(); else filterHistory(); }
-            if (sectionId === 'settings' && currentUser.role === 'ADMIN' && !window.isAdminDataLoaded) loadAdminData();
+            if (sectionId === 'analytics' && window.analyticsData.length === 0) window.loadAnalytics();
+            if (sectionId === 'employees') { if (!window.isEmployeesLoaded) window.loadEmployees(); else window.filterEmployees(); }
+            if (sectionId === 'history') { if (!window.isHistoryLoaded) window.loadHistory(); else window.filterHistory(); }
+            if (sectionId === 'settings' && window.currentUser.role === 'ADMIN' && !window.isAdminDataLoaded) window.loadAdminData();
         }
 
-        // ================= EMPLOYEE & IMPORT EXCEL LOGIC =================
+        window.loadAnalytics = async function() {
+            const start = document.getElementById('analyticsStart').value;
+            const end = document.getElementById('analyticsEnd').value;
+            window.showLoading('Menganalisa...');
+            try {
+                const q = query(collection(db, "artifacts", APP_ID, "public", "data", "history"), where("date", ">=", start), where("date", "<=", end));
+                const snap = await getDocs(q);
+                let data = [];
+                snap.forEach(d => {
+                    let row = {id: d.id, ...d.data()};
+                    if (row.duration !== null && row.duration !== '' && row.duration !== undefined) {
+                        const dur = parseInt(row.duration, 10);
+                        if (!isNaN(dur)) row.status = dur > window.getAllowedDuration(row.out) ? 'Terlambat' : 'Tepat Waktu';
+                    }
+                    data.push(row);
+                });
+                if (window.currentUser.role !== 'ADMIN') data = data.filter(h => h.store === window.currentUser.store);
+                window.analyticsData = data;
+                Swal.close();
+                window.processAnalyticsData();
+            } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        }
+
+        window.processAnalyticsData = function() {
+            const selectedStore = document.getElementById('analyticsStore').value;
+            let data = selectedStore !== 'ALL' ? window.analyticsData.filter(d => d.store === selectedStore) : window.analyticsData;
+
+            const uniqueDays = new Set(data.map(d => d.date)).size;
+            const onTimeCrews = new Set(data.filter(d => d.status === 'Tepat Waktu').map(d => d.empId)).size;
+            const lateCrews = new Set(data.filter(d => d.status === 'Terlambat').map(d => d.empId)).size;
+            
+            let totalLateMin = 0, countLateBreaks = 0;
+            data.forEach(d => {
+                if(d.duration && !isNaN(d.duration)) {
+                    const late = Math.max(0, parseInt(d.duration) - window.getAllowedDuration(d.out));
+                    if (late > 0) { totalLateMin += late; countLateBreaks++; }
+                }
+            });
+            
+            document.getElementById('statTotal').innerText = uniqueDays;
+            document.getElementById('statOnTime').innerText = onTimeCrews;
+            document.getElementById('statLate').innerText = lateCrews;
+            document.getElementById('statAvgDur').innerHTML = `${countLateBreaks > 0 ? Math.round(totalLateMin / countLateBreaks) : 0}<span class="text-sm ml-1 text-purple-200">mnt</span>`;
+
+            // Setup Charts
+            const otherCrews = new Set(data.filter(d => d.status !== 'Tepat Waktu' && d.status !== 'Terlambat').map(d => d.empId)).size;
+            const storeSet = new Set(data.map(d => d.store)); const sortedStores = Array.from(storeSet).sort();
+            
+            const dateGroups = {};
+            data.forEach(d => {
+                if(d.duration && !isNaN(d.duration)) {
+                    const late = Math.max(0, parseInt(d.duration) - window.getAllowedDuration(d.out));
+                    if (!dateGroups[d.date]) dateGroups[d.date] = { totalLate: 0, countLate: 0 };
+                    if (late > 0) { dateGroups[d.date].totalLate += late; dateGroups[d.date].countLate++; }
+                }
+            });
+            const sortedDates = Object.keys(dateGroups).sort();
+            
+            window.renderCharts([onTimeCrews, lateCrews, otherCrews], sortedStores, 
+                sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Tepat Waktu').map(d => d.empId)).size),
+                sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Terlambat').map(d => d.empId)).size),
+                sortedDates, sortedDates.map(d => dateGroups[d].countLate > 0 ? Math.round(dateGroups[d].totalLate / dateGroups[d].countLate) : 0)
+            );
+        }
+
+        window.renderCharts = function(pieData, barLabels, barDataOnTime, barDataLate, lineLabels, lineData) {
+            Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+            if(window.chartInstances.pie) window.chartInstances.pie.destroy();
+            if(window.chartInstances.bar) window.chartInstances.bar.destroy();
+            if(window.chartInstances.line) window.chartInstances.line.destroy();
+
+            window.chartInstances.pie = new Chart(document.getElementById('pieChart'), { type: 'doughnut', data: { labels: ['Tepat Waktu', 'Terlambat', 'Lainnya'], datasets: [{ data: pieData, backgroundColor: ['#10b981', '#ef4444', '#f59e0b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' } });
+            window.chartInstances.bar = new Chart(document.getElementById('barChart'), { type: 'bar', data: { labels: barLabels, datasets: [ { label: 'Tepat Waktu', data: barDataOnTime, backgroundColor: '#34d399', borderRadius: 4 }, { label: 'Terlambat', data: barDataLate, backgroundColor: '#f87171', borderRadius: 4 } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+            window.chartInstances.line = new Chart(document.getElementById('lineChart'), { type: 'line', data: { labels: lineLabels, datasets: [{ label: 'Rata-rata Terlambat', data: lineData, borderColor: '#6366f1', borderWidth: 3, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+        }
+
+        let html5QrcodeScanner = null;
+        window.toggleCamera = function() {
+            const readerDiv = document.getElementById('reader');
+            if (!readerDiv.classList.contains('hidden')) { if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { readerDiv.classList.add('hidden'); }); return; }
+            readerDiv.classList.remove('hidden');
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
+                document.getElementById('scanInput').value = txt; html5QrcodeScanner.stop().then(() => { readerDiv.classList.add('hidden'); });
+            }, (err) => {});
+        }
+
+        window.handleScan = async function(type) {
+            const val = document.getElementById('scanInput').value.trim();
+            if(!val) return Swal.fire('Ditolak', 'ID tidak boleh kosong', 'warning');
+            window.showLoading('Mencatat Presensi...');
+            try {
+                const empSnap = await getDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", val));
+                if (!empSnap.exists()) throw new Error("ID Karyawan tidak terdaftar.");
+                const empData = empSnap.data();
+
+                if (window.currentUser.role !== 'ADMIN' && empData.store !== window.currentUser.store) throw new Error("Beda Store!");
+                const today = new Date(); const dateStr = today.toISOString().split('T')[0];
+                const timeStr = today.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+                const q = query(collection(db, "artifacts", APP_ID, "public", "data", "history"), where("date", "==", dateStr), where("empId", "==", val));
+                const snap = await getDocs(q);
+                let existingDoc = null; snap.forEach(d => { existingDoc = { id: d.id, ...d.data() }; });
+
+                if (type === 'OUT') {
+                    if (existingDoc && existingDoc.out && !existingDoc.in) throw new Error("Sudah BREAK OUT.");
+                    if (existingDoc && existingDoc.out && existingDoc.in) throw new Error("Jatah break hari ini sudah habis.");
+                    await setDoc(doc(collection(db, "artifacts", APP_ID, "public", "data", "history")), { empId: val, name: empData.name, store: empData.store, date: dateStr, out: timeStr, in: '', duration: '', status: 'Pending' });
+                } else if (type === 'IN') {
+                    if (!existingDoc) throw new Error("Belum BREAK OUT.");
+                    if (existingDoc.in) throw new Error("Sudah BREAK IN.");
+                    const outTime = new Date(`${dateStr}T${existingDoc.out.replace(/\./g, ':')}`);
+                    const inTime = new Date(`${dateStr}T${timeStr.replace(/\./g, ':')}`);
+                    let diffMins = Math.round((inTime - outTime) / 60000);
+                    await updateDoc(doc(db, "artifacts", APP_ID, "public", "data", "history", existingDoc.id), { in: timeStr, duration: String(Math.max(0, diffMins)) });
+                }
+
+                Swal.fire({ title: 'Berhasil!', html: `<b>${empData.name}</b><br>Tercatat BREAK ${type}`, icon: 'success', timer:2000, showConfirmButton:false, customClass:{popup:'rounded-3xl'} });
+                document.getElementById('scanInput').value = ''; window.isHistoryLoaded = false; window.analyticsData = [];
+            } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+        }
+
         window.loadEmployees = async function() {
-            document.getElementById('employeeList').innerHTML = '';
-            document.getElementById('employeeLoading').classList.remove('hidden');
+            document.getElementById('employeeList').innerHTML = ''; document.getElementById('employeeLoading').classList.remove('hidden');
             try {
                 const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "employees"));
-                let data = [];
-                snap.forEach(doc => data.push(doc.data()));
-                
-                document.getElementById('employeeLoading').classList.add('hidden');
-                if (currentUser.role !== 'ADMIN') data = data.filter(e => e.store === currentUser.store);
+                let data = []; snap.forEach(doc => data.push(doc.data()));
+                if (window.currentUser.role !== 'ADMIN') data = data.filter(e => e.store === window.currentUser.store);
                 data.sort((a, b) => a.name.localeCompare(b.name));
-                
                 window.currentEmployees = data; window.filteredEmployees = data; window.isEmployeesLoaded = true; window.empPage = 1;
-                filterEmployees();
-            } catch(e) {
-                document.getElementById('employeeLoading').classList.add('hidden');
-                Swal.fire({title:'Error', text:e.message, icon:'error', customClass: {popup:'rounded-3xl'}});
-            }
-        }
-        
-        window.filterEmployees = function() {
-            const q = document.getElementById('searchEmployeeInput').value.toLowerCase();
-            const storeFilter = document.getElementById('filterEmpStore').value;
-            window.filteredEmployees = window.currentEmployees.filter(e => {
-                return (e.name.toLowerCase().includes(q) || String(e.id).includes(q)) && (storeFilter === 'ALL' || e.store === storeFilter);
-            });
-            renderEmployees();
-        }
-        
-        function renderEmployees() {
-            const list = document.getElementById('employeeList');
-            list.innerHTML = '';
-            const pageData = window.filteredEmployees.slice((empPage - 1) * empPerPage, empPage * empPerPage);
-            
-            pageData.forEach(e => {
-                let actionBtns = '';
-                if (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') {
-                    actionBtns = `<button type="button" onclick="deleteEmployee('${e.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-red-400 hover:text-red-600 shadow-sm border border-slate-100"><i class="fas fa-trash text-xs"></i></button>`;
-                }
-                list.innerHTML += `
-                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
-                        <h3 class="font-extrabold text-slate-800">${e.name}</h3>
-                        <p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase">${e.position}</p>
-                        <div class="bg-slate-50 rounded-2xl p-3 flex justify-between items-center border border-slate-100 mt-auto">
-                            <div><p class="text-xs font-bold text-slate-700">${e.id} <span class="text-indigo-300">•</span> ${e.store}</p></div>
-                            ${actionBtns}
-                        </div>
-                    </div>
-                `;
-            });
-            document.getElementById('empPageInfo').innerText = `Halaman ${empPage} dari ${Math.ceil(filteredEmployees.length / empPerPage) || 1}`;
-        }
-
-        window.submitEmployee = async function() {
-            const emp = { id: document.getElementById('newId').value, name: document.getElementById('newName').value, store: document.getElementById('newStore').value, position: document.getElementById('newPos').value };
-            if(!emp.id || !emp.name) return Swal.fire('Error', 'Data wajib diisi', 'warning');
-            
-            showLoading('Menyimpan...');
-            try {
-                await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", emp.id), emp);
-                Swal.fire({title:'Tersimpan', icon:'success', timer: 1500, showConfirmButton: false, customClass:{popup:'rounded-3xl'}});
-                closeModal('employeeModal');
-                window.isEmployeesLoaded = false;
-                loadEmployees();
+                document.getElementById('employeeLoading').classList.add('hidden'); window.filterEmployees();
             } catch(e) { Swal.fire('Error', e.message, 'error'); }
         }
+        window.forceLoadEmployees = function() { window.isEmployeesLoaded = false; window.loadEmployees(); }
+        window.filterEmployees = function() {
+            const q = document.getElementById('searchEmployeeInput').value.toLowerCase(); const storeFilter = document.getElementById('filterEmpStore').value;
+            window.filteredEmployees = window.currentEmployees.filter(e => { return (e.name.toLowerCase().includes(q) || String(e.id).includes(q)) && (storeFilter === 'ALL' || e.store === storeFilter); });
+            window.empPage = 1; window.renderEmployees();
+        }
+        window.renderEmployees = function() {
+            const list = document.getElementById('employeeList'); list.innerHTML = '';
+            if(window.filteredEmployees.length === 0) { list.innerHTML = '<div class="col-span-full text-center text-slate-400 py-6">Tidak ada data</div>'; return; }
+            const pageData = window.filteredEmployees.slice((window.empPage - 1) * window.empPerPage, window.empPage * window.empPerPage);
+            pageData.forEach(e => {
+                let del = (window.currentUser.role === 'ADMIN') ? `<button onclick="deleteEmployee('${e.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>` : '';
+                list.innerHTML += `<div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100"><div class="flex-1"><h3 class="font-extrabold text-slate-800 truncate">${e.name}</h3><p class="text-[11px] font-bold text-slate-400 uppercase">${e.position}</p></div><div class="bg-slate-50 rounded-2xl p-3 flex justify-between items-center border border-slate-100 mt-4"><p class="text-xs font-bold text-slate-700">${e.id} <span class="text-indigo-300 mx-1">•</span> ${e.store}</p><div>${del}</div></div></div>`;
+            });
+            document.getElementById('empPageInfo').innerText = `Hal ${window.empPage} dari ${Math.ceil(window.filteredEmployees.length / window.empPerPage)}`;
+        }
+        window.changeEmpPage = function(dir) { const tot = Math.ceil(window.filteredEmployees.length / window.empPerPage); let n = window.empPage + dir; if(n>=1 && n<=tot) { window.empPage = n; window.renderEmployees(); } }
+        window.openAddModal = function() { document.getElementById('employeeModal').classList.remove('hidden'); document.getElementById('newId').value=''; document.getElementById('newName').value=''; if(window.currentUser.role !== 'ADMIN') { document.getElementById('newStore').value=window.currentUser.store; document.getElementById('newStore').disabled=true; } }
+        window.submitEmployee = async function() {
+            const emp = { id: document.getElementById('newId').value, name: document.getElementById('newName').value, store: document.getElementById('newStore').value, position: document.getElementById('newPos').value, image: '' };
+            if(!emp.id || !emp.name) return Swal.fire('Error', 'Data wajib', 'warning');
+            window.showLoading('Menyimpan...');
+            try { await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", emp.id), emp); window.closeModal('employeeModal'); Swal.fire({title:'Tersimpan', icon:'success', timer: 1500, showConfirmButton: false}); window.forceLoadEmployees(); } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        }
+        window.deleteEmployee = function(id) { Swal.fire({ title:'Hapus Karyawan?', icon:'warning', showCancelButton:true, confirmButtonColor:'#e11d48', confirmButtonText:'Hapus' }).then(async r => { if(r.isConfirmed){ window.showLoading('Menghapus...'); try { await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", id)); Swal.fire({title:'Terhapus', icon:'success', timer: 1500, showConfirmButton: false}); window.forceLoadEmployees(); } catch(e){ Swal.fire('Error',e.message,'error'); } } }); }
 
-        // ================= IMPORT EXCEL LOGIC =================
+        window.loadHistory = async function() {
+            const start = document.getElementById('filterStart').value; const end = document.getElementById('filterEnd').value;
+            document.getElementById('historyBody').innerHTML = '<tr><td colspan="8" class="text-center py-6">Memuat...</td></tr>';
+            try {
+                const q = query(collection(db, "artifacts", APP_ID, "public", "data", "history"), where("date", ">=", start), where("date", "<=", end));
+                const snap = await getDocs(q); let data = [];
+                snap.forEach(d => {
+                    let row = {id: d.id, ...d.data()};
+                    if (row.duration !== null && row.duration !== '' && row.duration !== undefined) {
+                        const dur = parseInt(row.duration, 10);
+                        if (!isNaN(dur)) row.status = dur > window.getAllowedDuration(row.out) ? 'Terlambat' : 'Tepat Waktu';
+                    }
+                    data.push(row);
+                });
+                if (window.currentUser.role !== 'ADMIN') data = data.filter(h => h.store === window.currentUser.store);
+                window.currentHistory = data; window.isHistoryLoaded = true; window.applyHistoryFilters();
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        }
+        window.filterHistory = function() { window.applyHistoryFilters(); }
+        window.applyHistoryFilters = function() {
+            const q = document.getElementById('searchHistoryInput').value.toLowerCase(); const storeFilter = document.getElementById('filterStoreHistory').value;
+            window.filteredHistory = window.currentHistory.filter(h => { return (h.name.toLowerCase().includes(q) || String(h.empId).includes(q)) && (storeFilter === 'ALL' || h.store === storeFilter); });
+            window.historyPage = 1; window.renderHistoryPage();
+        }
+        window.renderHistoryPage = function() {
+            const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
+            if(window.filteredHistory.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6">Kosong</td></tr>'; return; }
+            const pageData = window.filteredHistory.slice((window.historyPage - 1) * window.historyPerPage, window.historyPage * window.historyPerPage);
+            pageData.forEach(r => {
+                const badge = r.status === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' : (r.status === 'Terlambat' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700');
+                const delBtn = (window.currentUser.role === 'ADMIN') ? `<button onclick="deleteHistory('${r.id}')" class="text-red-400 hover:text-red-600 ml-2"><i class="fas fa-trash"></i></button>` : '';
+                tbody.innerHTML += `<tr><td class="px-6 py-4">${delBtn}</td><td class="px-6 py-4">${r.store}</td><td class="px-6 py-4"><b>${r.name}</b><br><span class="text-xs text-slate-400">${r.empId}</span></td><td class="px-6 py-4">${r.date}</td><td class="px-6 py-4">${r.out}</td><td class="px-6 py-4">${r.in||'-'}</td><td class="px-6 py-4">${r.duration||'-'}</td><td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded ${badge}">${r.status||'-'}</span></td></tr>`;
+            });
+            document.getElementById('historyPageInfo').innerText = `Hal ${window.historyPage} dari ${Math.ceil(window.filteredHistory.length / window.historyPerPage)}`;
+        }
+        window.changeHistoryPage = function(dir) { const tot = Math.ceil(window.filteredHistory.length / window.historyPerPage); let n = window.historyPage + dir; if(n>=1 && n<=tot) { window.historyPage = n; window.renderHistoryPage(); } }
+        window.deleteHistory = function(id) { Swal.fire({ title:'Hapus Log?', icon:'warning', showCancelButton:true, confirmButtonColor:'#e11d48' }).then(async r => { if(r.isConfirmed){ try { await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "history", id)); window.isHistoryLoaded=false; window.loadHistory(); }catch(e){} }}); }
+        window.exportHistoryToCSV = function() {
+            if(window.filteredHistory.length === 0) return Swal.fire('Kosong', 'Tidak ada data.', 'info');
+            const csv = ["Store,ID,Nama,Tanggal,Out,In,Durasi,Status"];
+            window.filteredHistory.forEach(r => csv.push(`"${r.store}","${r.empId}","${r.name}","${r.date}","${r.out}","${r.in}","${r.duration}","${r.status}"`));
+            const dl = document.createElement("a"); dl.download = "Laporan_Absensi.csv"; dl.href = window.URL.createObjectURL(new Blob([csv.join("\n")], {type: "text/csv"})); dl.click();
+        }
+
         window.importEmployeesExcel = function() {
             const fileInput = document.getElementById('fileImportEmp');
             if(!fileInput.files.length) return Swal.fire('Warning', 'Pilih file Excel terlebih dahulu!', 'warning');
-            
             const reader = new FileReader();
             reader.onload = async (e) => {
-                showLoading('Memproses Data Akun & Karyawan...');
+                window.showLoading('Memproses Data Karyawan...');
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    // Baca data excel (header baris pertama akan jadi key object)
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
+                    const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
                     
-                    let count = 0;
-                    let batch = writeBatch(db);
-                    const batchPromises = [];
-                    
+                    let count = 0; let batch = writeBatch(db); const batchPromises = [];
                     json.forEach(rawRow => {
-                        // NORMALISASI NAMA KOLOM: Menghilangkan spasi dan mengubah jadi huruf kecil semua
-                        // Ini akan mengubah "Employee ID" menjadi "employeeid", "Full Name" menjadi "fullname", dll.
-                        const row = {};
-                        for(let k in rawRow) {
-                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
-                        }
-                        
-                        // MENCOCOKKAN DENGAN TEMPLATE GAMBAR:
+                        const row = {}; for(let k in rawRow) row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
                         const id = String(row.employeeid || row.id || '');
                         const name = String(row.fullname || row.name || row.nama || '');
                         const role = String(row.role || 'KARYAWAN').toUpperCase();
@@ -902,76 +803,19 @@
                         const position = String(row.position || 'Crew');
                         const password = String(row.password || '123456');
                         const status = String(row.status || 'approved').toLowerCase();
-                        const createdAt = String(row.createdat || new Date().toISOString());
-
-                        // Validasi: Pastikan ID dan Nama ada
-                        if(id && name && id !== 'undefined' && name !== 'undefined') {
-                            
-                            // 1. Simpan ke Collection 'users' (Untuk Akses Login)
-                            const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
-                            const userData = {
-                                id: id,
-                                name: name,
-                                role: role,
-                                store: store,
-                                position: position,
-                                password: password,
-                                status: status,
-                                createdAt: createdAt
-                            };
-                            batch.set(userRef, userData);
-                            
-                            // 2. Simpan ke Collection 'employees' (Untuk Direktori di dalam Aplikasi)
-                            // Jika dia bukan admin, masukkan juga ke direktori karyawan. (Manager dan Karyawan akan masuk direktori)
-                            if (role !== 'ADMIN') {
-                                const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
-                                const empData = {
-                                    id: id,
-                                    name: name,
-                                    store: store,
-                                    position: position,
-                                    image: '' // Default tanpa foto
-                                };
-                                batch.set(empRef, empData);
-                            }
+                        
+                        if(id && name && id !== 'undefined') {
+                            batch.set(doc(db, "artifacts", APP_ID, "public", "data", "users", id), { id, name, role, store, position, password, status, createdAt: new Date().toISOString() });
+                            if (role !== 'ADMIN') batch.set(doc(db, "artifacts", APP_ID, "public", "data", "employees", id), { id, name, store, position, image: '' });
                             
                             count++;
-                            
-                            // Bypass limit 500 operasi Firebase per batch
-                            // 1 User bisa menghasilkan 2 operasi tulis (users + employees), jadi kita batasi di 200 iterasi per batch
-                            if (count % 200 === 0) {
-                                batchPromises.push(batch.commit());
-                                batch = writeBatch(db);
-                            }
+                            if (count % 200 === 0) { batchPromises.push(batch.commit()); batch = writeBatch(db); }
                         }
                     });
-                    
-                    // Commit sisa data
-                    batchPromises.push(batch.commit());
-                    await Promise.all(batchPromises);
-                    
-                    window.isEmployeesLoaded = false;
-                    window.isAdminDataLoaded = false; // Reset data tabel admin agar refresh
-                    
-                    if (count > 0) {
-                        Swal.fire({
-                            title: 'Berhasil', 
-                            text: `${count} Akun dan Data Karyawan berhasil diimpor. Anda sekarang bisa login menggunakan data tersebut.`, 
-                            icon: 'success',
-                            customClass: {popup: 'rounded-3xl'}
-                        }).then(() => {
-                            // Reload tabel jika sedang berada di menu admin
-                            if (window.currentUser && window.currentUser.role === 'ADMIN') {
-                                loadAdminData();
-                            }
-                        });
-                    } else {
-                        Swal.fire('Gagal', 'Tidak ada data valid yang diproses. Pastikan format kolom sama persis dengan template (Employee ID, Full Name, dll).', 'error');
-                    }
-                } catch(error) { 
-                    Swal.fire('Gagal', error.message, 'error'); 
-                    console.error(error);
-                }
+                    batchPromises.push(batch.commit()); await Promise.all(batchPromises);
+                    window.isEmployeesLoaded = false; window.isAdminDataLoaded = false;
+                    Swal.fire('Berhasil', `${count} akun berhasil diimpor.`, 'success');
+                } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
         }
@@ -981,91 +825,48 @@
             if(!fileInput.files.length) return Swal.fire('Warning', 'Pilih file Excel terlebih dahulu!', 'warning');
             const reader = new FileReader();
             reader.onload = async (e) => {
-                showLoading('Memproses Excel Absensi...');
+                window.showLoading('Memproses Excel Absensi...');
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    // Atur format pembacaan agar tanggal tidak menjadi serial number aneh
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
-                    
-                    let count = 0;
-                    let batch = writeBatch(db);
-                    const batchPromises = [];
-                    
+                    const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
+                    let count = 0; let batch = writeBatch(db); const batchPromises = [];
+
                     json.forEach(rawRow => {
-                        // Normalisasi nama kolom
-                        const row = {};
-                        for(let k in rawRow) {
-                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
-                        }
-                        
-                        // Fleksibilitas pencarian kolom dari format spreadsheet yang berbeda-beda
+                        const row = {}; for(let k in rawRow) row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
                         const empId = String(row.empid || row.id || row.nik || row.employeeid || '');
-                        const name = String(row.name || row.nama || '');
-                        const dateRaw = String(row.date || row.tanggal || row.tgl || '');
+                        const name = String(row.name || row.nama || row.fullname || '');
+                        const dateRaw = String(row.date || row.tanggal || row.createdat || '');
                         const store = String(row.store || row.resto || row.cabang || 'UNKNOWN');
                         const outTime = String(row.out || row.keluar || row.breakout || '-');
                         const inTime = String(row.in || row.masuk || row.breakin || '-');
                         let duration = String(row.duration || row.durasi || row.totaldurasi || '');
-                        
-                        // Bersihkan spasi/karakter jika format date dari excel memuat timezone
-                        const dateStr = dateRaw.split(' ')[0].split('T')[0];
 
-                        // Pastikan data esensial ada
-                        if(empId && name && dateStr && empId !== 'undefined' && dateStr !== 'undefined') {
-                            
-                            // Bersihkan angka durasi jika ada tulisan teks di dalamnya
-                            duration = duration ? duration.replace(/[^0-9]/g, '') : null;
-
-                            const histRef = doc(collection(db, "artifacts", APP_ID, "public", "data", "history"));
-                            batch.set(histRef, {
-                                empId: empId, 
-                                name: name, 
-                                store: store,
-                                date: dateStr, 
-                                out: outTime, 
-                                in: inTime,
-                                duration: duration ? String(duration) : null
-                            });
-                            count++;
-                            
-                            // Eksekusi tiap 400 data agar tidak melampaui limit write firebase
-                            if (count % 400 === 0) {
-                                batchPromises.push(batch.commit());
-                                batch = writeBatch(db);
+                        let dateStr = "";
+                        if(dateRaw) {
+                            const dParts = dateRaw.split(/[T\s]/)[0]; dateStr = dParts;
+                            if(dateStr.includes('/')) {
+                                 const p = dateStr.split('/');
+                                 if(p.length === 3 && p[2].length === 4) dateStr = `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;
                             }
                         }
+
+                        if(empId && name && dateStr && empId !== 'undefined') {
+                            duration = duration ? duration.replace(/[^0-9]/g, '') : null;
+                            batch.set(doc(collection(db, "artifacts", APP_ID, "public", "data", "history")), { empId, name, store, date: dateStr, out: outTime, in: inTime, duration: duration ? String(duration) : null });
+                            count++;
+                            if (count % 400 === 0) { batchPromises.push(batch.commit()); batch = writeBatch(db); }
+                        }
                     });
-                    
-                    batchPromises.push(batch.commit());
-                    await Promise.all(batchPromises);
-                    
-                    window.isHistoryLoaded = false;
-                    window.analyticsData = []; // Reset memori grafik analytics agar memuat data baru
-                    
-                    if(count > 0) {
-                        Swal.fire('Berhasil', `${count} Baris absensi berhasil diimpor.`, 'success');
-                    } else {
-                        Swal.fire('Gagal', 'Gagal memproses data. Pastikan ada kolom "ID", "Name", dan "Date / Tanggal".', 'error');
-                    }
+                    batchPromises.push(batch.commit()); await Promise.all(batchPromises);
+                    window.isHistoryLoaded = false; window.analyticsData = [];
+                    Swal.fire('Berhasil', `${count} baris absensi diimpor.`, 'success');
                 } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
         }
 
-        // ================= GLOBAL HELPERS =================
-        window.togglePassword = function(inputId, iconId) {
-            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
-            if (input.type === "password") { input.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
-            else { input.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
-        }
-        window.showRegister = function() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('register-section').classList.remove('hidden'); }
-        window.showLogin = function() { document.getElementById('register-section').classList.add('hidden'); document.getElementById('login-section').classList.remove('hidden'); }
-        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); }
-        window.openAddModal = function() { document.getElementById('employeeModal').classList.remove('hidden'); }
-        window.changeEmpPage = function(dir) { window.empPage += dir; renderEmployees(); }
-
+        // INIT CLOCK & LOAD
+        setInterval(() => { const t = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); document.getElementById('clockTime').innerText = t; document.getElementById('clockTimeMobile').innerText = t; }, 1000);
     </script>
 </body>
 </html>
