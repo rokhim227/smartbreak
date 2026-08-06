@@ -878,27 +878,51 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const sheetName = workbook.SheetNames[0];
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
                     
-                    const batch = writeBatch(db);
                     let count = 0;
+                    let batch = writeBatch(db);
+                    const batchPromises = [];
                     
-                    json.forEach(row => {
-                        const id = String(row.ID || row.id || row.Id);
-                        if(id && row.Name) {
-                            const empData = {
-                                id: id, name: String(row.Name || row.name),
-                                store: String(row.Store || row.store || 'UNKNOWN'),
-                                position: String(row.Position || row.position || 'Crew')
-                            };
+                    json.forEach(rawRow => {
+                        // Normalisasi nama kolom (hilangkan spasi dan jadikan huruf kecil semua)
+                        const row = {};
+                        for(let k in rawRow) {
+                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
+                        }
+                        
+                        // Fleksibilitas nama kolom Excel
+                        const id = String(row.id || row.empid || row.nik || row.employeeid || '');
+                        const name = String(row.name || row.nama || row.namalengkap || '');
+                        const store = String(row.store || row.resto || row.cabang || row.asalstore || 'UNKNOWN');
+                        const position = String(row.position || row.jabatan || row.posisi || 'Crew');
+
+                        if(id && name && id !== 'undefined' && name !== 'undefined') {
+                            const empData = { id: id, name: name, store: store, position: position };
                             const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
+                            
                             batch.set(empRef, empData);
                             count++;
+                            
+                            // Bypass limit 500 operasi Firebase per batch
+                            if (count % 400 === 0) {
+                                batchPromises.push(batch.commit());
+                                batch = writeBatch(db);
+                            }
                         }
                     });
-                    await batch.commit();
+                    
+                    // Commit sisa data
+                    batchPromises.push(batch.commit());
+                    await Promise.all(batchPromises);
+                    
                     window.isEmployeesLoaded = false;
-                    Swal.fire('Berhasil', `${count} Data karyawan diimpor.`, 'success');
+                    
+                    if (count > 0) {
+                        Swal.fire('Berhasil', `${count} Data karyawan berhasil diimpor.`, 'success');
+                    } else {
+                        Swal.fire('Gagal', 'Tidak ada data valid. Pastikan Excel memiliki kolom ID dan Nama (Name).', 'error');
+                    }
                 } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
@@ -914,25 +938,69 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const sheetName = workbook.SheetNames[0];
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    // Atur format pembacaan agar tanggal tidak menjadi serial number aneh
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
                     
-                    const batch = writeBatch(db);
                     let count = 0;
+                    let batch = writeBatch(db);
+                    const batchPromises = [];
                     
-                    json.forEach(row => {
-                        if(row.EmpId && row.Name && row.Date) {
+                    json.forEach(rawRow => {
+                        // Normalisasi nama kolom
+                        const row = {};
+                        for(let k in rawRow) {
+                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
+                        }
+                        
+                        // Fleksibilitas pencarian kolom dari format spreadsheet yang berbeda-beda
+                        const empId = String(row.empid || row.id || row.nik || row.employeeid || '');
+                        const name = String(row.name || row.nama || '');
+                        const dateRaw = String(row.date || row.tanggal || row.tgl || '');
+                        const store = String(row.store || row.resto || row.cabang || 'UNKNOWN');
+                        const outTime = String(row.out || row.keluar || row.breakout || '-');
+                        const inTime = String(row.in || row.masuk || row.breakin || '-');
+                        let duration = String(row.duration || row.durasi || row.totaldurasi || '');
+                        
+                        // Bersihkan spasi/karakter jika format date dari excel memuat timezone
+                        const dateStr = dateRaw.split(' ')[0].split('T')[0];
+
+                        // Pastikan data esensial ada
+                        if(empId && name && dateStr && empId !== 'undefined' && dateStr !== 'undefined') {
+                            
+                            // Bersihkan angka durasi jika ada tulisan teks di dalamnya
+                            duration = duration ? duration.replace(/[^0-9]/g, '') : null;
+
                             const histRef = doc(collection(db, "artifacts", APP_ID, "public", "data", "history"));
                             batch.set(histRef, {
-                                empId: String(row.EmpId), name: String(row.Name), store: String(row.Store || 'UNKNOWN'),
-                                date: String(row.Date), out: String(row.Out || '-'), in: String(row.In || '-'),
-                                duration: row.Duration ? String(row.Duration) : null
+                                empId: empId, 
+                                name: name, 
+                                store: store,
+                                date: dateStr, 
+                                out: outTime, 
+                                in: inTime,
+                                duration: duration ? String(duration) : null
                             });
                             count++;
+                            
+                            // Eksekusi tiap 400 data agar tidak melampaui limit write firebase
+                            if (count % 400 === 0) {
+                                batchPromises.push(batch.commit());
+                                batch = writeBatch(db);
+                            }
                         }
                     });
-                    await batch.commit();
+                    
+                    batchPromises.push(batch.commit());
+                    await Promise.all(batchPromises);
+                    
                     window.isHistoryLoaded = false;
-                    Swal.fire('Berhasil', `${count} Riwayat absensi diimpor.`, 'success');
+                    window.analyticsData = []; // Reset memori grafik analytics agar memuat data baru
+                    
+                    if(count > 0) {
+                        Swal.fire('Berhasil', `${count} Baris absensi berhasil diimpor.`, 'success');
+                    } else {
+                        Swal.fire('Gagal', 'Gagal memproses data. Pastikan ada kolom "ID", "Name", dan "Date / Tanggal".', 'error');
+                    }
                 } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
