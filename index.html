@@ -621,703 +621,311 @@
         
         const APP_ID = firebaseConfig.appId;
 
-        // --- GLOBAL STATE ---
+        // Global Variables
         window.currentUser = null;
         window.currentEmployees = []; window.filteredEmployees = []; window.isEmployeesLoaded = false;
         window.currentHistory = []; window.filteredHistory = []; window.isHistoryLoaded = false;
-        window.allUsersState = []; window.filteredUsersState = []; window.isAdminDataLoaded = false;
+        window.allUsersState = []; window.isAdminDataLoaded = false;
         window.analyticsData = []; window.chartInstances = {};
         
         window.empPage = 1; window.empPerPage = 20;
         window.historyPage = 1; window.historyPerPage = 10;
-        window.usersPage = 1; window.usersPerPage = 10;
-        
-        window.isEditingEmp = false; window.fileBase64 = '';
-        window.currentZoom = 1; window.html5QrcodeScanner = null;
 
-        // --- UTILS ---
-        window.showLoading = function(msg = 'Memproses...') {
-            Swal.fire({ title: msg, allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'rounded-3xl shadow-2xl border border-slate-100' } });
-        }
-        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); }
-        window.togglePassword = function(inputId, iconId) {
-            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
-            if (input.type === "password") { input.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
-            else { input.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
-        }
-        window.showRegister = function() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('register-section').classList.remove('hidden'); window.updateJabatanOptions(); }
-        window.showLogin = function() { document.getElementById('register-section').classList.add('hidden'); document.getElementById('login-section').classList.remove('hidden'); }
-        window.updateJabatanOptions = function() {
-            const type = document.getElementById('regType').value; const select = document.getElementById('regJabatan'); select.innerHTML = '';
-            if (type === 'KARYAWAN') { ['Crew', 'Stocker', 'QC'].forEach(j => select.add(new Option(j, j))); } 
-            else { ['FL', 'FM', 'ASM', 'SM'].forEach(j => select.add(new Option(j, j))); }
-        }
-        window.zoomImage = function(url, name) {
-            Swal.fire({ title: `<span class="font-bold text-slate-800 text-lg">${name}</span>`, html: `<div class="relative overflow-auto rounded-2xl shadow-inner bg-slate-50 flex items-center justify-center border border-slate-200" style="height: 50vh; touch-action: none;" id="zoomContainer"><img id="zoomedImg" src="${url}" class="transition-transform duration-200 ease-out origin-center object-contain max-h-full max-w-full rounded-xl" style="transform: scale(1);"></div><div class="mt-5 flex justify-center gap-3 bg-white p-2 rounded-full w-max mx-auto shadow-sm border border-slate-200"><button type="button" onclick="changeZoom(-0.25)" class="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600 flex items-center justify-center transition-transform active:scale-90"><i class="fas fa-minus"></i></button><button type="button" onclick="resetZoom()" class="px-4 h-10 bg-indigo-50 hover:bg-indigo-100 rounded-full text-indigo-600 font-bold text-sm flex items-center justify-center transition-transform active:scale-90"><i class="fas fa-compress mr-2"></i>Reset</button><button type="button" onclick="changeZoom(0.25)" class="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600 flex items-center justify-center transition-transform active:scale-90"><i class="fas fa-plus"></i></button></div>`, showConfirmButton: false, showCloseButton: true, width: '600px', customClass: { popup: 'rounded-3xl' }, didOpen: () => { window.currentZoom = 1; } });
-        }
-        window.changeZoom = function(delta) { window.currentZoom = Math.max(0.5, Math.min(window.currentZoom + delta, 4)); document.getElementById('zoomedImg').style.transform = `scale(${window.currentZoom})`; }
-        window.resetZoom = function() { window.currentZoom = 1; document.getElementById('zoomedImg').style.transform = `scale(1)`; const container = document.getElementById('zoomContainer'); if(container) container.scrollTo(0,0); }
-        window.generateQRCode = function(id, name) {
-            Swal.fire({ title: `<span class="font-bold text-slate-800">${name}</span>`, html: `<div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 mt-2"><p class="mb-4 text-xs font-bold text-slate-500 tracking-widest uppercase">ID: ${id}</p><div class="bg-white p-3 rounded-xl shadow-sm inline-block border border-slate-100"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" class="w-48 h-48"></div><p class="mt-4 text-[11px] text-slate-400 font-medium">Gunakan kode ini pada menu scanner.</p></div>`, confirmButtonText: 'Tutup Modul', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl font-bold' } });
-        }
-
-        // --- AUTH & CORE ---
         async function ensureAuth() {
-            if (!auth.currentUser) { try { await signInAnonymously(auth); } catch (e) { throw new Error("Gagal terhubung ke Firebase."); } }
+            if (!auth.currentUser) {
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    throw new Error("Gagal terhubung ke server otentikasi Firebase.");
+                }
+            }
+        }
+
+        window.showLoading = function(msg = 'Memproses...') {
+            Swal.fire({ title: msg, allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading(), customClass: { popup: 'rounded-3xl' } });
         }
 
         window.handleLogin = async function(e) {
             e.preventDefault();
-            const id = document.getElementById('loginUsername').value; const pass = document.getElementById('loginPassword').value;
-            window.showLoading('Autentikasi...');
+            const id = document.getElementById('loginUsername').value;
+            const pass = document.getElementById('loginPassword').value;
+
+            showLoading('Autentikasi...');
             try {
                 await ensureAuth();
+
+                // SUPER ADMIN BYPASS
                 if (id === '1001128' && pass === 'admin123') {
                     window.currentUser = { id: '1001128', name: 'Super Admin', role: 'ADMIN', store: 'ALL', position: 'System Admin', status: 'approved' };
-                    finishLogin(window.currentUser); return;
+                    finishLogin(window.currentUser);
+                    return;
                 }
-                const userSnap = await getDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", id));
-                if (!userSnap.exists()) throw new Error("ID tidak terdaftar.");
+
+                // Cek DB
+                const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    throw new Error("ID tidak terdaftar.");
+                }
+
                 const userData = userSnap.data();
                 if (userData.password !== pass) throw new Error("Password salah!");
                 if (userData.status === 'pending') throw new Error("Akun Anda belum disetujui oleh Admin.");
-                window.currentUser = userData; finishLogin(userData);
-            } catch (err) { Swal.fire({title: 'Akses Ditolak', text: err.message, icon: 'error', customClass: {popup: 'rounded-3xl'}}); }
+
+                window.currentUser = userData;
+                finishLogin(userData);
+
+            } catch (err) {
+                Swal.fire({title: 'Akses Ditolak', text: err.message, icon: 'error', customClass: {popup: 'rounded-3xl'}});
+            }
         }
 
         function finishLogin(user) {
-            document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            
             setupEnvironment();
-            document.getElementById('login-section').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden');
-            const todayStr = new Date().toISOString().split('T')[0]; const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            
             document.getElementById('filterStart').value = todayStr; document.getElementById('filterEnd').value = todayStr;
             document.getElementById('analyticsStart').value = firstDay; document.getElementById('analyticsEnd').value = todayStr;
-            Swal.fire({ icon: 'success', title: `Halo, ${user.name.split(' ')[0]}!`, text: 'Selamat bekerja dan beraktivitas.', timer: 2000, showConfirmButton: false, customClass: { popup: 'rounded-3xl' } });
+
+            Swal.fire({ icon: 'success', title: `Halo, ${user.name.split(' ')[0]}!`, timer: 2000, showConfirmButton: false, customClass: { popup: 'rounded-3xl' } });
         }
 
         window.handleRegister = async function(e) {
             e.preventDefault();
-            const type = document.getElementById('regType').value; const id = document.getElementById('regId').value;
-            const userData = { id: id, name: document.getElementById('regName').value, store: document.getElementById('regStore').value, position: document.getElementById('regJabatan').value, password: document.getElementById('regPassword').value, role: type, status: type === 'MANAGER' ? 'pending' : 'approved', createdAt: new Date().toISOString() };
-            window.showLoading('Membuat Akun...');
+            const type = document.getElementById('regType').value;
+            const id = document.getElementById('regId').value;
+            const userData = {
+                id: id,
+                name: document.getElementById('regName').value,
+                store: document.getElementById('regStore').value,
+                position: document.getElementById('regJabatan').value,
+                password: document.getElementById('regPassword').value,
+                role: type,
+                status: type === 'MANAGER' ? 'pending' : 'approved',
+                createdAt: new Date().toISOString()
+            };
+
+            showLoading('Membuat Akun...');
             try {
                 await ensureAuth();
-                const checkSnap = await getDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", id));
+                const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
+                const checkSnap = await getDoc(userRef);
                 if (checkSnap.exists()) throw new Error("Employee ID sudah terdaftar.");
-                await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", id), userData);
-                if(type === 'KARYAWAN') await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", id), { id: id, name: userData.name, store: userData.store, position: userData.position, image: '' });
+
+                await setDoc(userRef, userData);
+                
+                // Jika karyawan, masukkan ke database pegawai juga
+                if(type === 'KARYAWAN') {
+                    const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
+                    await setDoc(empRef, { id: id, name: userData.name, store: userData.store, position: userData.position });
+                }
+
                 const msg = type === 'MANAGER' ? 'Registrasi berhasil! Tunggu Admin melakukan approval.' : 'Registrasi berhasil! Silakan login.';
-                Swal.fire({title:'Sukses', text: msg, icon:'success', customClass: {popup: 'rounded-3xl'}}).then(() => { document.getElementById('regPassword').value = ''; window.showLogin(); });
-            } catch (err) { Swal.fire({title:'Gagal', text: err.message, icon:'error', customClass: {popup: 'rounded-3xl'}}); }
+                Swal.fire({title:'Sukses', text: msg, icon:'success', customClass: {popup: 'rounded-3xl'}}).then(() => {
+                    document.getElementById('regPassword').value = '';
+                    showLogin();
+                });
+            } catch (err) {
+                Swal.fire({title:'Gagal', text: err.message, icon:'error', customClass: {popup: 'rounded-3xl'}});
+            }
         }
 
         window.doLogout = function() {
-            Swal.fire({ title: 'Akhiri Sesi?', text: "Anda akan keluar dari sistem.", icon: 'question', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Keluar', cancelButtonText: 'Batal', customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl', cancelButton: 'rounded-xl' } }).then((res) => { if(res.isConfirmed) window.location.reload(); });
+            Swal.fire({
+                title: 'Akhiri Sesi?', icon: 'question', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Keluar',
+                customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl', cancelButton: 'rounded-xl' }
+            }).then((res) => {
+                if(res.isConfirmed) {
+                    window.location.reload();
+                }
+            });
         }
 
         function setupEnvironment() {
-            document.getElementById('userRoleLabel').innerText = `${window.currentUser.position} • ${window.currentUser.name}`;
-            document.getElementById('storeLabel').innerText = window.currentUser.store; document.getElementById('storeLabelMobile').innerText = window.currentUser.store;
+            document.getElementById('userRoleLabel').innerText = `${currentUser.position} • ${currentUser.name}`;
+            document.getElementById('storeLabel').innerText = currentUser.store;
+            
+            // Load Settings
             getDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo")).then(snap => {
-                if(snap.exists() && snap.data().title) {
-                    document.getElementById('appTitle').innerText = snap.data().title; document.getElementById('appLogo').src = snap.data().logo || '';
-                    document.getElementById('setAppTitle').value = snap.data().title; document.getElementById('setAppLogo').value = snap.data().logo || '';
+                if(snap.exists()) {
+                    const data = snap.data();
+                    document.getElementById('appTitle').innerText = data.title || 'SmartBreak';
+                    document.getElementById('appLogo').src = data.logo || '';
+                    document.getElementById('setAppTitle').value = data.title || '';
+                    document.getElementById('setAppLogo').value = data.logo || '';
                 }
             }).catch(e => console.log('Info: Settings belum diset.'));
 
             const navAnalytics = document.getElementById('nav-analytics'), navScan = document.getElementById('nav-dashboard'), navSet = document.getElementById('nav-settings'), btnAddEmp = document.getElementById('btnAddEmployee'), adminPanel = document.getElementById('adminPanelWrapper');
+
             adminPanel.classList.add('hidden');
             const filters = [document.getElementById('filterStoreHistory'), document.getElementById('analyticsStore'), document.getElementById('filterEmpStore'), document.getElementById('newStore')];
 
-            if (window.currentUser.role === 'KARYAWAN') {
+            if (currentUser.role === 'KARYAWAN') {
                 navAnalytics.classList.replace('flex', 'hidden'); navScan.classList.replace('flex', 'hidden'); navSet.classList.replace('flex', 'hidden'); btnAddEmp.classList.add('hidden');
-                filters.forEach(el => { el.value = window.currentUser.store; el.disabled = true; }); window.navTo('employees');
-            } else if (window.currentUser.role === 'MANAGER') {
+                filters.forEach(el => { el.value = currentUser.store; el.disabled = true; });
+                navTo('employees');
+            } else if (currentUser.role === 'MANAGER') {
                 navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden');
-                filters.forEach(el => { el.value = window.currentUser.store; el.disabled = true; }); window.navTo('analytics');
-            } else if (window.currentUser.role === 'ADMIN') {
+                filters.forEach(el => { el.value = currentUser.store; el.disabled = true; });
+                navTo('analytics');
+            } else if (currentUser.role === 'ADMIN') {
                 navAnalytics.classList.replace('hidden', 'flex'); navScan.classList.replace('hidden', 'flex'); navSet.classList.replace('hidden', 'flex'); btnAddEmp.classList.remove('hidden'); adminPanel.classList.remove('hidden');
-                filters.forEach(el => { el.value = 'ALL'; el.disabled = false; }); window.navTo('analytics');
+                filters.forEach(el => { el.value = 'ALL'; el.disabled = false; });
+                navTo('analytics');
             }
         }
 
         window.navTo = function(sectionId) {
-            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden-section')); document.getElementById(`section-${sectionId}`).classList.remove('hidden-section');
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav', 'text-indigo-600')); const activeBtn = document.getElementById(`nav-${sectionId}`); if(activeBtn) activeBtn.classList.add('active-nav');
+            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden-section'));
+            document.getElementById(`section-${sectionId}`).classList.remove('hidden-section');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav', 'text-indigo-600'));
+            const activeBtn = document.getElementById(`nav-${sectionId}`);
+            if(activeBtn) activeBtn.classList.add('active-nav');
 
-            if (sectionId === 'analytics' && window.analyticsData.length === 0) window.loadAnalytics();
-            if (sectionId === 'employees') { if (!window.isEmployeesLoaded) window.loadEmployees(); else window.filterEmployees(); }
-            if (sectionId === 'history') { if (!window.isHistoryLoaded) window.loadHistory(); else window.filterHistory(); }
-            if (sectionId === 'settings' && window.currentUser.role === 'ADMIN' && !window.isAdminDataLoaded) window.loadAdminData();
+            if (sectionId === 'analytics' && window.analyticsData.length === 0) loadAnalytics();
+            if (sectionId === 'employees') { if (!window.isEmployeesLoaded) loadEmployees(); else filterEmployees(); }
+            if (sectionId === 'history') { if (!window.isHistoryLoaded) loadHistory(); else filterHistory(); }
+            if (sectionId === 'settings' && currentUser.role === 'ADMIN' && !window.isAdminDataLoaded) loadAdminData();
         }
 
-        // --- ANALYTICS ---
-        window.loadAnalytics = async function() {
-            const start = document.getElementById('analyticsStart').value; const end = document.getElementById('analyticsEnd').value;
-            window.showLoading('Memuat Analytics...');
-            try {
-                await ensureAuth(); const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "history"));
-                let data = [];
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if (d.date >= start && d.date <= end) {
-                        if (d.duration !== null && d.duration !== '') {
-                            const dur = parseInt(d.duration, 10);
-                            if (!isNaN(dur)) { const allowed = window.getAllowedDuration(d.out); d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu'; }
-                        }
-                        data.push(d);
-                    }
-                });
-                if (window.currentUser.role !== 'ADMIN') data = data.filter(h => h.store === window.currentUser.store);
-                window.analyticsData = data; window.processAnalyticsData(); Swal.close();
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
-        }
-
-        window.getAllowedDuration = function(outTimeStr) {
-            if (!outTimeStr || typeof outTimeStr !== 'string' || outTimeStr === '-') return 60;
-            const hour = parseInt(outTimeStr.split(':')[0], 10); return (hour >= 0 && hour <= 5) ? 30 : 60;
-        }
-
-        window.processAnalyticsData = function() {
-            const selectedStore = document.getElementById('analyticsStore').value; let data = window.analyticsData;
-            if (selectedStore !== 'ALL') data = data.filter(d => d.store === selectedStore);
-
-            const uniqueDays = new Set(data.map(d => d.date)).size;
-            const onTimeCrews = new Set(data.filter(d => d.status === 'Tepat Waktu').map(d => d.empId)).size;
-            const lateCrews = new Set(data.filter(d => d.status === 'Terlambat').map(d => d.empId)).size;
-            
-            let totalLateMin = 0; let countLateBreaks = 0;
-            data.forEach(d => {
-                if(d.duration && !isNaN(d.duration)) {
-                    const dur = parseInt(d.duration); const allowedDur = window.getAllowedDuration(d.out); const late = Math.max(0, dur - allowedDur);
-                    if (late > 0) { totalLateMin += late; countLateBreaks++; }
-                }
-            });
-            const avgLate = countLateBreaks > 0 ? Math.round(totalLateMin / countLateBreaks) : 0;
-
-            document.getElementById('statTotal').innerText = uniqueDays; document.getElementById('statOnTime').innerText = onTimeCrews;
-            document.getElementById('statLate').innerText = lateCrews; document.getElementById('statAvgDur').innerHTML = `${avgLate}<span class="text-sm font-medium ml-1 text-purple-200">mnt</span>`;
-
-            const otherCrews = new Set(data.filter(d => d.status !== 'Tepat Waktu' && d.status !== 'Terlambat').map(d => d.empId)).size;
-            const pieData = [onTimeCrews, lateCrews, otherCrews];
-
-            const storeSet = new Set(data.map(d => d.store)); const sortedStores = Array.from(storeSet).sort();
-            const barDataOnTime = sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Tepat Waktu').map(d => d.empId)).size);
-            const barDataLate = sortedStores.map(s => new Set(data.filter(d => d.store === s && d.status === 'Terlambat').map(d => d.empId)).size);
-
-            const dateGroups = {};
-            data.forEach(d => {
-                if(d.duration && !isNaN(d.duration)) {
-                    const dur = parseInt(d.duration); const allowedDur = window.getAllowedDuration(d.out); const late = Math.max(0, dur - allowedDur);
-                    if (!dateGroups[d.date]) dateGroups[d.date] = { totalLate: 0, countLate: 0 };
-                    if (late > 0) { dateGroups[d.date].totalLate += late; dateGroups[d.date].countLate++; }
-                }
-            });
-            const sortedDates = Object.keys(dateGroups).sort((a, b) => new Date(a) - new Date(b));
-            const lineData = sortedDates.map(d => { const count = dateGroups[d].countLate; return count > 0 ? Math.round(dateGroups[d].totalLate / count) : 0; });
-
-            window.renderRankings(data); window.renderCharts(pieData, sortedStores, barDataOnTime, barDataLate, sortedDates, lineData);
-        }
-
-        window.getRankingStyle = function(index) {
-            if (index === 0) return { bg: 'bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-200 shadow-md scale-[1.02] z-10', iconColor: 'text-amber-500', icon: 'fa-trophy', rankColor: 'text-amber-600' };
-            if (index === 1) return { bg: 'bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200 shadow-sm z-0', iconColor: 'text-slate-400', icon: 'fa-medal', rankColor: 'text-slate-500' };
-            if (index === 2) return { bg: 'bg-gradient-to-r from-orange-50 to-orange-100/50 border border-orange-200 shadow-sm z-0', iconColor: 'text-orange-500', icon: 'fa-medal', rankColor: 'text-orange-600' };
-            return { bg: 'bg-transparent border border-transparent hover:bg-slate-50', iconColor: 'text-slate-300', icon: 'fa-award', rankColor: 'text-slate-400' };
-        }
-
-        window.renderRankings = function(data) {
-            const punctualData = {};
-            data.filter(d => d.status === 'Tepat Waktu').forEach(d => { if(!punctualData[d.empId]) punctualData[d.empId] = { name: d.name, store: d.store, count: 0 }; punctualData[d.empId].count++; });
-            const sortedPunctual = Object.values(punctualData).sort((a,b) => b.count - a.count).slice(0, 5);
-            const ulPunctual = document.getElementById('rankPunctual'); ulPunctual.innerHTML = '';
-            if(sortedPunctual.length === 0) ulPunctual.innerHTML = '<li class="p-4 text-center text-sm text-slate-400">Belum ada data</li>';
-            else sortedPunctual.forEach((item, index) => {
-                const style = window.getRankingStyle(index); const baseClass = index < 3 ? 'mb-2 rounded-xl transition-all' : 'border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors mx-2 rounded-lg';
-                ulPunctual.innerHTML += `<li class="p-4 flex items-center justify-between relative ${baseClass} ${style.bg}"><div class="flex items-center gap-3 w-full min-w-0 pr-2"><div class="w-8 h-8 flex-shrink-0 rounded-full bg-white/80 flex items-center justify-center shadow-sm border border-white"><i class="fas ${style.icon} ${style.iconColor} text-sm"></i></div><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-2"><span class="text-sm font-bold text-slate-700 truncate block">${item.name}</span><span class="text-[9px] font-extrabold bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md shadow-sm uppercase tracking-wider flex-shrink-0">${item.store}</span></div><span class="text-[10px] font-bold ${style.rankColor} uppercase tracking-wider mt-0.5">Rank ${index+1}</span></div></div><span class="flex-shrink-0 text-xs font-bold bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">${item.count}x Tepat</span></li>`;
-            });
-
-            const delayedData = {};
-            data.filter(d => d.status === 'Terlambat').forEach(d => { if(!delayedData[d.empId]) delayedData[d.empId] = { name: d.name, store: d.store, count: 0 }; delayedData[d.empId].count++; });
-            const sortedDelayed = Object.values(delayedData).sort((a,b) => b.count - a.count).slice(0, 5);
-            const ulDelayed = document.getElementById('rankDelayed'); ulDelayed.innerHTML = '';
-            if(sortedDelayed.length === 0) ulDelayed.innerHTML = '<li class="p-4 text-center text-sm text-slate-400">Belum ada data</li>';
-            else sortedDelayed.forEach((item, index) => {
-                const style = window.getRankingStyle(index); const baseClass = index < 3 ? 'mb-2 rounded-xl transition-all' : 'border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors mx-2 rounded-lg';
-                ulDelayed.innerHTML += `<li class="p-4 flex items-center justify-between relative ${baseClass} ${style.bg}"><div class="flex items-center gap-3 w-full min-w-0 pr-2"><div class="w-8 h-8 flex-shrink-0 rounded-full bg-white/80 flex items-center justify-center shadow-sm border border-white"><i class="fas ${style.icon} ${style.iconColor} text-sm"></i></div><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-2"><span class="text-sm font-bold text-slate-700 truncate block">${item.name}</span><span class="text-[9px] font-extrabold bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md shadow-sm uppercase tracking-wider flex-shrink-0">${item.store}</span></div><span class="text-[10px] font-bold ${style.rankColor} uppercase tracking-wider mt-0.5">Rank ${index+1}</span></div></div><span class="flex-shrink-0 text-xs font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100 shadow-sm">${item.count}x Telat</span></li>`;
-            });
-        }
-
-        window.renderCharts = function(pieData, barLabels, barDataOnTime, barDataLate, lineLabels, lineData) {
-            Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif"; Chart.defaults.color = '#64748b';
-            if(window.chartInstances.pie) window.chartInstances.pie.destroy(); if(window.chartInstances.bar) window.chartInstances.bar.destroy(); if(window.chartInstances.line) window.chartInstances.line.destroy();
-
-            const ctxPie = document.getElementById('pieChart').getContext('2d');
-            window.chartInstances.pie = new Chart(ctxPie, { type: 'doughnut', data: { labels: ['Tepat Waktu', 'Terlambat', 'Lainnya'], datasets: [{ data: pieData, backgroundColor: ['#10b981', '#ef4444', '#f59e0b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' } });
-
-            const ctxBar = document.getElementById('barChart').getContext('2d');
-            const gradOnTime = ctxBar.createLinearGradient(0, 0, 0, 400); gradOnTime.addColorStop(0, '#34d399'); gradOnTime.addColorStop(1, '#10b981');
-            const gradLate = ctxBar.createLinearGradient(0, 0, 0, 400); gradLate.addColorStop(0, '#f87171'); gradLate.addColorStop(1, '#ef4444');
-            window.chartInstances.bar = new Chart(ctxBar, { type: 'bar', data: { labels: barLabels, datasets: [{ label: 'Crew Tepat Waktu', data: barDataOnTime, backgroundColor: gradOnTime, borderRadius: 4 }, { label: 'Crew Terlambat', data: barDataLate, backgroundColor: gradLate, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false } });
-
-            const ctxLine = document.getElementById('lineChart').getContext('2d');
-            window.chartInstances.line = new Chart(ctxLine, { type: 'line', data: { labels: lineLabels, datasets: [{ label: 'Rata-rata Keterlambatan (Mnt)', data: lineData, borderColor: '#6366f1', borderWidth: 3, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false } });
-        }
-
-        // --- SCANNER ---
-        window.toggleCamera = function() {
-            const readerDiv = document.getElementById('reader');
-            if (!readerDiv.classList.contains('hidden')) {
-                if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().then(() => { readerDiv.classList.add('hidden'); readerDiv.innerHTML=''; });
-                return;
-            }
-            readerDiv.classList.remove('hidden'); window.html5QrcodeScanner = new Html5Qrcode("reader");
-            window.html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
-                document.getElementById('scanInput').value = txt; window.html5QrcodeScanner.stop().then(() => { readerDiv.classList.add('hidden'); readerDiv.innerHTML=''; });
-            }, (err) => {});
-        }
-
-        window.handleScan = async function(type) {
-            const val = document.getElementById('scanInput').value.trim();
-            if(!val) return Swal.fire('Warning', 'Kolom ID/QR tidak boleh kosong', 'warning');
-            window.showLoading('Mencatat Presensi...');
-            try {
-                await ensureAuth();
-                const empSnap = await getDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", val));
-                if(!empSnap.exists()) throw new Error("ID Karyawan tidak terdaftar!");
-                const emp = empSnap.data();
-
-                const dateStr = new Date().toISOString().split('T')[0];
-                const timeStr = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-
-                const logData = { empId: val, name: emp.name, store: emp.store, date: dateStr };
-                if (type === 'OUT') {
-                    logData.out = timeStr; logData.in = '-'; logData.duration = null;
-                    await setDoc(doc(collection(db, "artifacts", APP_ID, "public", "data", "history")), logData);
-                } else {
-                    const q = query(collection(db, "artifacts", APP_ID, "public", "data", "history"), where("empId", "==", val), where("date", "==", dateStr));
-                    const snap = await getDocs(q); let foundDoc = null;
-                    snap.forEach(doc => { if(doc.data().out !== '-' && doc.data().in === '-') foundDoc = doc; });
-                    if(!foundDoc) throw new Error("Belum melakukan scan BREAK OUT hari ini!");
-                    const diffMins = Math.round((new Date(`${dateStr}T${timeStr}`) - new Date(`${dateStr}T${foundDoc.data().out}`)) / 60000);
-                    await updateDoc(doc(db, "artifacts", APP_ID, "public", "data", "history", foundDoc.id), { in: timeStr, duration: String(diffMins) });
-                }
-
-                Swal.fire({ title: 'Terekam!', html: `<span class="font-bold text-lg text-slate-800">${emp.name}</span><br>berhasil melakukan <span class="font-bold text-indigo-600">BREAK ${type}</span>`, icon: 'success', timer:2000, showConfirmButton:false, customClass:{popup:'rounded-3xl'} });
-                document.getElementById('scanInput').value = '';
-                
-                const log = document.getElementById('miniLogList'); const isOut = type === 'OUT';
-                const colorClass = isOut ? 'border-l-amber-500 bg-amber-50/50' : 'border-l-emerald-500 bg-emerald-50/50';
-                const iconClass = isOut ? 'text-amber-500 fa-sign-out-alt' : 'text-emerald-500 fa-sign-in-alt';
-                const currentEmpty = log.querySelector('.text-center'); if(currentEmpty) currentEmpty.remove();
-                log.innerHTML = `<div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 border-l-4 ${colorClass} shadow-sm mb-2 animate-fade-in-up"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100"><i class="fas ${iconClass} text-sm"></i></div><div><span class="block font-bold text-slate-700 text-sm">${emp.name}</span><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">${type}</span></div></div><span class="text-xs font-mono font-bold bg-white px-2 py-1 rounded shadow-sm border border-slate-100">${timeStr}</span></div>` + log.innerHTML;
-                window.isHistoryLoaded = false; window.analyticsData = [];
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
-        }
-
-        // --- EMPLOYEES ---
+        // ================= EMPLOYEE & IMPORT EXCEL LOGIC =================
         window.loadEmployees = async function() {
-            document.getElementById('employeeList').innerHTML = ''; document.getElementById('employeeLoading').classList.remove('hidden');
+            document.getElementById('employeeList').innerHTML = '';
+            document.getElementById('employeeLoading').classList.remove('hidden');
             try {
-                await ensureAuth(); const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "employees"));
-                let data = []; snap.forEach(doc => data.push(doc.data()));
+                const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "employees"));
+                let data = [];
+                snap.forEach(doc => data.push(doc.data()));
+                
                 document.getElementById('employeeLoading').classList.add('hidden');
-                if (window.currentUser.role !== 'ADMIN') data = data.filter(e => e.store === window.currentUser.store);
+                if (currentUser.role !== 'ADMIN') data = data.filter(e => e.store === currentUser.store);
                 data.sort((a, b) => a.name.localeCompare(b.name));
+                
                 window.currentEmployees = data; window.filteredEmployees = data; window.isEmployeesLoaded = true; window.empPage = 1;
-                window.updateEmployeeSummaries(); window.filterEmployees();
-            } catch(e) { document.getElementById('employeeLoading').classList.add('hidden'); Swal.fire('Error', e.message, 'error'); }
+                filterEmployees();
+            } catch(e) {
+                document.getElementById('employeeLoading').classList.add('hidden');
+                Swal.fire({title:'Error', text:e.message, icon:'error', customClass: {popup:'rounded-3xl'}});
+            }
         }
         
-        window.forceLoadEmployees = function() { window.isEmployeesLoaded = false; window.loadEmployees(); }
-
-        window.updateEmployeeSummaries = function() {
-            const selectedStore = document.getElementById('filterEmpStore').value;
-            let data = window.currentEmployees; if (selectedStore !== 'ALL') data = window.currentEmployees.filter(e => e.store === selectedStore);
-            document.getElementById('sumEmpTotal').innerText = data.length;
-            document.getElementById('sumEmpCrew').innerText = data.filter(e => e.position === 'Crew').length;
-            document.getElementById('sumEmpStocker').innerText = data.filter(e => e.position === 'Stocker').length;
-            document.getElementById('sumEmpQC').innerText = data.filter(e => e.position === 'QC').length;
-        }
-
         window.filterEmployees = function() {
-            const q = document.getElementById('searchEmployeeInput').value.toLowerCase(); const storeFilter = document.getElementById('filterEmpStore').value;
-            window.filteredEmployees = window.currentEmployees.filter(e => { return (e.name.toLowerCase().includes(q) || String(e.id).includes(q) || e.position.toLowerCase().includes(q)) && (storeFilter === 'ALL' || e.store === storeFilter); });
-            window.updateEmployeeSummaries(); window.empPage = 1; window.renderEmployees();
+            const q = document.getElementById('searchEmployeeInput').value.toLowerCase();
+            const storeFilter = document.getElementById('filterEmpStore').value;
+            window.filteredEmployees = window.currentEmployees.filter(e => {
+                return (e.name.toLowerCase().includes(q) || String(e.id).includes(q)) && (storeFilter === 'ALL' || e.store === storeFilter);
+            });
+            renderEmployees();
         }
         
-        window.renderEmployees = function() {
-            const list = document.getElementById('employeeList'); list.innerHTML = '';
-            if(window.filteredEmployees.length === 0) { list.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200"><i class="fas fa-user-slash text-4xl mb-3 text-slate-300"></i><br>Data tidak ditemukan</div>`; document.getElementById('empPageInfo').innerText = `Halaman 1 dari 1`; return; }
-
-            const totalPages = Math.ceil(window.filteredEmployees.length / window.empPerPage);
-            const pageData = window.filteredEmployees.slice((window.empPage - 1) * window.empPerPage, window.empPage * window.empPerPage);
+        function renderEmployees() {
+            const list = document.getElementById('employeeList');
+            list.innerHTML = '';
+            const pageData = window.filteredEmployees.slice((empPage - 1) * empPerPage, empPage * empPerPage);
             
             pageData.forEach(e => {
-                const safeName = e.name ? e.name.replace(/"/g, '&quot;') : 'Unknown'; const profileImgUrl = e.image || 'https://via.placeholder.com/150';
-                let actionBtns = `<button type="button" onclick="openEditModal('${e.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-amber-500 hover:bg-amber-50 flex items-center justify-center transition-colors shadow-sm border border-slate-100" title="Edit Profil"><i class="fas fa-pen text-xs"></i></button>`;
-                if (window.currentUser.role === 'ADMIN') actionBtns += `<button type="button" onclick="deleteEmployee('${e.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors shadow-sm border border-slate-100" title="Hapus Data"><i class="fas fa-trash text-xs"></i></button>`;
-                list.innerHTML += `<div class="bg-white p-5 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-slate-100 hover:shadow-[0_8px_25px_-5px_rgba(79,70,229,0.15)] hover:border-indigo-100 transition-all duration-300 group flex flex-col relative overflow-hidden"><div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"></div><div class="flex items-center gap-4 mb-4"><div class="relative flex-shrink-0"><div class="absolute inset-0 bg-indigo-100 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div><img src="${profileImgUrl}" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md relative z-10 cursor-pointer hover:scale-105 transition-transform" onclick="zoomImage('${profileImgUrl}', '${safeName}')" title="Lihat Foto"></div><div class="flex-1 min-w-0"><h3 class="font-extrabold text-slate-800 truncate text-base group-hover:text-indigo-600 transition-colors">${e.name}</h3><p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase">${e.position}</p></div></div><div class="bg-slate-50 rounded-2xl p-3 flex justify-between items-center border border-slate-100/60 mt-auto"><div><p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">ID & STORE</p><p class="text-xs font-bold text-slate-700">${e.id} <span class="text-indigo-300 mx-1">•</span> ${e.store}</p></div><div class="flex items-center gap-1.5"><button type="button" onclick="generateQRCode('${e.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors shadow-sm border border-slate-100" title="Tampilkan QR"><i class="fas fa-qrcode text-xs"></i></button>${actionBtns}</div></div></div>`;
+                let actionBtns = '';
+                if (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') {
+                    actionBtns = `<button type="button" onclick="deleteEmployee('${e.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-red-400 hover:text-red-600 shadow-sm border border-slate-100"><i class="fas fa-trash text-xs"></i></button>`;
+                }
+                list.innerHTML += `
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+                        <h3 class="font-extrabold text-slate-800">${e.name}</h3>
+                        <p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase">${e.position}</p>
+                        <div class="bg-slate-50 rounded-2xl p-3 flex justify-between items-center border border-slate-100 mt-auto">
+                            <div><p class="text-xs font-bold text-slate-700">${e.id} <span class="text-indigo-300">•</span> ${e.store}</p></div>
+                            ${actionBtns}
+                        </div>
+                    </div>
+                `;
             });
-            document.getElementById('empPageInfo').innerText = `Halaman ${window.empPage} dari ${totalPages} (${window.filteredEmployees.length} Total)`;
-        }
-
-        window.changeEmpPage = function(dir) {
-            const totalPages = Math.ceil(window.filteredEmployees.length / window.empPerPage); let newPage = window.empPage + dir;
-            if(newPage >= 1 && newPage <= totalPages) { window.empPage = newPage; window.renderEmployees(); }
-        }
-
-        window.openAddModal = function() {
-            window.isEditingEmp = false; document.getElementById('modalTitle').innerHTML = "<i class='fas fa-user-plus mr-2 text-indigo-500'></i> Tambah Karyawan";
-            document.getElementById('newId').value = ''; document.getElementById('newId').disabled = false; document.getElementById('newName').value = '';
-            document.getElementById('fileName').innerText = ''; document.getElementById('previewImage').classList.add('hidden'); document.getElementById('previewImage').src = ''; document.getElementById('uploadPlaceholder').classList.remove('hidden');
-            window.fileBase64 = ''; document.getElementById('employeeModal').classList.remove('hidden');
-        }
-
-        window.openEditModal = function(id) {
-            const emp = window.currentEmployees.find(e => String(e.id) === String(id)); if(!emp) return;
-            document.getElementById('modalTitle').innerHTML = "<i class='fas fa-user-edit mr-2 text-amber-500'></i> Edit Profil";
-            document.getElementById('newId').value = emp.id; document.getElementById('newId').disabled = true;
-            document.getElementById('newName').value = emp.name; document.getElementById('newStore').value = emp.store; document.getElementById('newPos').value = emp.position; document.getElementById('fileName').innerText = '(Abaikan jika tidak ganti foto)';
-            window.fileBase64 = emp.image || ''; 
-            if (window.fileBase64) { document.getElementById('previewImage').src = window.fileBase64; document.getElementById('previewImage').classList.remove('hidden'); document.getElementById('uploadPlaceholder').classList.add('hidden'); } 
-            else { document.getElementById('previewImage').classList.add('hidden'); document.getElementById('uploadPlaceholder').classList.remove('hidden'); }
-            document.getElementById('employeeModal').classList.remove('hidden');
-        }
-
-        window.previewFile = function(input) {
-            const file = input.files[0];
-            if(file) {
-                if(file.size > 5 * 1024 * 1024) { Swal.fire('Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.', 'warning'); input.value = ''; return; }
-                const reader = new FileReader();
-                reader.onload = (e) => { 
-                    const img = new Image(); img.onload = () => {
-                        const canvas = document.createElement('canvas'); const MAX_WIDTH = 400; const MAX_HEIGHT = 400;
-                        let width = img.width; let height = img.height;
-                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-                        canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                        window.fileBase64 = canvas.toDataURL('image/webp', 0.8); 
-                        document.getElementById('fileName').innerText = '✅ ' + file.name + ' (Terkonversi)'; 
-                        document.getElementById('previewImage').src = window.fileBase64; document.getElementById('previewImage').classList.remove('hidden'); document.getElementById('uploadPlaceholder').classList.add('hidden');
-                    }; img.src = e.target.result;
-                }; reader.readAsDataURL(file);
-            }
+            document.getElementById('empPageInfo').innerText = `Halaman ${empPage} dari ${Math.ceil(filteredEmployees.length / empPerPage) || 1}`;
         }
 
         window.submitEmployee = async function() {
-            const emp = { id: document.getElementById('newId').value, name: document.getElementById('newName').value, store: document.getElementById('newStore').value, position: document.getElementById('newPos').value, image: window.fileBase64 };
+            const emp = { id: document.getElementById('newId').value, name: document.getElementById('newName').value, store: document.getElementById('newStore').value, position: document.getElementById('newPos').value };
             if(!emp.id || !emp.name) return Swal.fire('Error', 'Data wajib diisi', 'warning');
-            window.showLoading('Menyimpan Data...');
+            
+            showLoading('Menyimpan...');
             try {
                 await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", emp.id), emp);
-                Swal.fire({title:'Tersimpan', text:'Data Karyawan berhasil diperbarui', icon:'success', timer: 1500, showConfirmButton: false, customClass:{popup:'rounded-3xl'}});
-                window.closeModal('employeeModal');
-                const idx = window.currentEmployees.findIndex(e => String(e.id) === String(emp.id));
-                if (idx > -1) window.currentEmployees[idx] = { ...window.currentEmployees[idx], ...emp }; else window.currentEmployees.push(emp);
-                window.currentEmployees.sort((a, b) => a.name.localeCompare(b.name)); window.updateEmployeeSummaries(); window.filterEmployees(); window.isAdminDataLoaded = false;
+                Swal.fire({title:'Tersimpan', icon:'success', timer: 1500, showConfirmButton: false, customClass:{popup:'rounded-3xl'}});
+                closeModal('employeeModal');
+                window.isEmployeesLoaded = false;
+                loadEmployees();
             } catch(e) { Swal.fire('Error', e.message, 'error'); }
         }
 
-        window.deleteEmployee = function(id) {
-            Swal.fire({ title:'Hapus Data Karyawan?', text:'Tindakan ini tidak dapat dibatalkan.', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Hapus', confirmButtonColor:'#e11d48', customClass:{popup:'rounded-3xl', confirmButton:'rounded-xl', cancelButton:'rounded-xl'} }).then(async r => {
-                if(r.isConfirmed) { 
-                    window.showLoading('Menghapus Data...'); 
-                    try {
-                        await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "employees", String(id)));
-                        Swal.fire({title:'Terhapus', icon:'success', timer: 1500, showConfirmButton: false, customClass:{popup:'rounded-3xl'}});
-                        window.currentEmployees = window.currentEmployees.filter(e => String(e.id) !== String(id)); window.updateEmployeeSummaries(); window.filterEmployees();
-                    } catch(e) { Swal.fire('Error', e.message, 'error'); }
-                }
-            });
-        }
-
-        // --- HISTORY ---
-        window.loadHistory = async function() {
-            const start = document.getElementById('filterStart').value; const end = document.getElementById('filterEnd').value;
-            document.getElementById('historyBody').innerHTML = '<tr><td colspan="9" class="text-center py-10"><div class="loader mx-auto"></div><p class="text-sm mt-3 text-slate-400 font-medium">Memuat Laporan...</p></td></tr>';
-            try {
-                await ensureAuth(); const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "history"));
-                let data = [];
-                snap.forEach(doc => {
-                    const d = doc.data(); d.id = doc.id;
-                    if (d.date >= start && d.date <= end) {
-                        if (d.duration !== null && d.duration !== '') {
-                            const dur = parseInt(d.duration, 10);
-                            if (!isNaN(dur)) { const allowed = window.getAllowedDuration(d.out); d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu'; }
-                        }
-                        data.push(d);
-                    }
-                });
-                if (window.currentUser.role !== 'ADMIN') data = data.filter(h => h.store === window.currentUser.store);
-                window.currentHistory = data; window.isHistoryLoaded = true; window.applyHistoryFilters();
-            } catch(err) { Swal.fire('Error', err.message, 'error'); }
-        }
-        
-        window.filterHistory = function() { window.applyHistoryFilters(); }
-        window.applyHistoryFilters = function() {
-            const q = document.getElementById('searchHistoryInput').value.toLowerCase(); const storeFilter = document.getElementById('filterStoreHistory').value;
-            window.filteredHistory = window.currentHistory.filter(h => (h.name.toLowerCase().includes(q) || String(h.empId).includes(q)) && (storeFilter === 'ALL' || h.store === storeFilter));
-            window.historyPage = 1; window.renderHistoryPage();
-        }
-
-        window.renderHistoryPage = function() {
-            const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
-            if(window.filteredHistory.length === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">Tidak ada riwayat presensi</td></tr>'; document.getElementById('historyPageInfo').innerText = `Halaman 1 dari 1`; return; }
-            
-            const totalPages = Math.ceil(window.filteredHistory.length / window.historyPerPage);
-            const pageData = window.filteredHistory.slice((window.historyPage - 1) * window.historyPerPage, window.historyPage * window.historyPerPage);
-            
-            pageData.forEach(row => {
-                const badge = row.status === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : (row.status === 'Terlambat' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200');
-                const safeName = row.name ? row.name.replace(/"/g, '&quot;') : ''; const allowedDur = window.getAllowedDuration(row.out);
-                let lateMinText = '-'; if(row.duration && !isNaN(row.duration)) { const dur = parseInt(row.duration); if(dur > allowedDur) lateMinText = (dur - allowedDur) + ' <span class="text-[10px] font-normal text-slate-400">mnt</span>'; }
-                let delBtn = ''; if(window.currentUser.role === 'ADMIN' || window.currentUser.role === 'MANAGER') delBtn = `<button type="button" onclick="deleteHistoryRow('${row.id}')" class="w-7 h-7 rounded bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors shadow-sm ml-2 flex items-center justify-center"><i class="fas fa-trash text-[10px]"></i></button>`;
-                tbody.innerHTML += `<tr><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><button type="button" onclick="viewHist(this.getAttribute('data-name'), '${row.out}', '${row.in}', '${row.duration}')" data-name="${safeName}" class="w-7 h-7 rounded bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-colors shadow-sm flex items-center justify-center"><i class="fas fa-eye text-[10px]"></i></button>${delBtn}</div></td><td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-600"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200">${row.store}</span></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-slate-800">${row.name}</div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${row.empId}</div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${row.date}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-amber-600 font-bold">${row.out}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-emerald-600 font-bold">${row.in || '-'}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-bold">${row.duration ? row.duration+' <span class="text-[10px] font-normal text-slate-400">mnt</span>' : '-'}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-bold">${lateMinText}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-1 text-[10px] rounded-full font-bold border uppercase tracking-wider ${badge}">${row.status}</span></td></tr>`;
-            });
-            document.getElementById('historyPageInfo').innerText = `Halaman ${window.historyPage} dari ${totalPages} (${window.filteredHistory.length} Baris)`;
-        }
-
-        window.changeHistoryPage = function(dir) {
-            const totalPages = Math.ceil(window.filteredHistory.length / window.historyPerPage); let newPage = window.historyPage + dir;
-            if(newPage >= 1 && newPage <= totalPages) { window.historyPage = newPage; window.renderHistoryPage(); }
-        }
-
-        window.viewHist = function(name, out, inp, dur) {
-            const allowedDur = window.getAllowedDuration(out); const lateMin = (dur !== 'null' && parseInt(dur) > allowedDur) ? (parseInt(dur) - allowedDur) : 0;
-            Swal.fire({ title: `<span class="text-lg font-bold text-slate-800">Detail Presensi</span>`, html: `<div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-left mt-2"><p class="font-bold text-indigo-600 text-base mb-4 border-b border-slate-200 pb-2">${name}</p><div class="grid grid-cols-2 gap-4"><div><span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Waktu Keluar</span><span class="font-mono font-bold text-amber-600 text-lg">${out}</span></div><div class="mt-4 pt-4 border-t border-slate-200 flex justify-between"><div><span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Durasi</span><span class="font-bold text-slate-700">${dur !== 'null' ? dur+' Menit' : '-'}</span></div><div class="text-right"><span class="block text-[10px] uppercase font-bold text-red-400 tracking-wider">Keterlambatan</span><span class="font-bold text-red-600">${lateMin > 0 ? lateMin + ' Menit' : '-'}</span></div></div></div></div>`, showConfirmButton: true, confirmButtonText: 'Tutup', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl font-bold' } });
-        }
-
-        window.deleteHistoryRow = function(id) {
-            Swal.fire({ title:'Hapus log?', text:'Data yang dihapus tidak bisa dikembalikan.', icon:'warning', showCancelButton:true, confirmButtonColor: '#e11d48', confirmButtonText: 'Hapus', customClass:{popup:'rounded-3xl', confirmButton:'rounded-xl', cancelButton:'rounded-xl'} }).then(async r => {
-                if(r.isConfirmed) {
-                    window.showLoading('Menghapus Log...');
-                    try {
-                        await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "history", String(id)));
-                        Swal.fire({title:'Terhapus', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
-                        window.currentHistory = window.currentHistory.filter(h => String(h.id) !== String(id));
-                        window.analyticsData = []; window.applyHistoryFilters();
-                    } catch(e) { Swal.fire('Error', e.message, 'error'); }
-                }
-            })
-        }
-
-        window.exportHistoryToCSV = function() {
-            if(window.filteredHistory.length === 0) return Swal.fire({title:'Kosong', text:'Tidak ada data untuk diekspor pada filter ini', icon:'info', customClass:{popup:'rounded-3xl'}});
-            const csv = [["Store", "ID", "Nama", "Tanggal", "Out", "In", "Durasi (Menit)", "Telat (Menit)", "Status"].join(",")];
-            window.filteredHistory.forEach(row => {
-                const allowedDur = window.getAllowedDuration(row.out); let lateMin = 0;
-                if(row.duration && !isNaN(row.duration)) lateMin = Math.max(0, parseInt(row.duration) - allowedDur);
-                csv.push([`"${row.store}"`, `"${row.empId}"`, `"${row.name}"`, `"${row.date}"`, `"${row.out}"`, `"${row.in}"`, `"${row.duration || '-'}"`, `"${lateMin || '-'}"`, `"${row.status}"`].join(","));
-            });
-            const dl = document.createElement("a"); dl.download = "Laporan_SmartBreak.csv"; dl.href = window.URL.createObjectURL(new Blob([csv.join("\n")], {type: "text/csv"})); dl.click();
-        }
-
-        // --- ADMIN & IMPORT EXCEL ---
-        window.saveAppSettings = async function() {
-            const title = document.getElementById('setAppTitle').value;
-            const logo = document.getElementById('setAppLogo').value;
-            
-            showLoading('Menerapkan Pengaturan...');
-            try {
-                await ensureAuth();
-                await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo"), { title, logo });
-                
-                document.getElementById('appTitle').innerText = title;
-                document.getElementById('appLogo').src = logo;
-                document.getElementById('loginAppLogo').src = logo;
-                Swal.fire({title:'Sukses', text:'Tampilan berhasil diperbarui', icon:'success', customClass:{popup:'rounded-3xl'}});
-            } catch(e) { 
-                Swal.fire('Error', e.message, 'error'); 
-            }
-        }
-
-        window.loadAdminData = async function() {
-            const approvalListEl = document.getElementById('approvalList');
-            const allUsersListEl = document.getElementById('allUsersList');
-            
-            if (approvalListEl) approvalListEl.innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
-            if (allUsersListEl) allUsersListEl.innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
-
-            try {
-                await ensureAuth();
-                const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "users"));
-                let users = [];
-                snap.forEach(doc => users.push(doc.data()));
-                
-                window.allUsersState = users;
-                window.filteredUsersState = users;
-                window.isAdminDataLoaded = true;
-                window.usersPage = 1;
-                
-                window.renderAdminApprovals();
-                window.renderUsersPage();
-            } catch(e) { 
-                console.error(e); 
-            }
-        }
-        
-        window.forceLoadAdminData = function() {
-            window.isAdminDataLoaded = false;
-            window.loadAdminData();
-        }
-
-        window.filterAllUsers = function() {
-            const q = document.getElementById('searchUserInput').value.toLowerCase();
-            window.filteredUsersState = window.allUsersState.filter(u => {
-                return (u.name && u.name.toLowerCase().includes(q)) || 
-                       String(u.id).includes(q) || 
-                       (u.role && u.role.toLowerCase().includes(q)) || 
-                       (u.store && u.store.toLowerCase().includes(q));
-            });
-            window.usersPage = 1;
-            window.renderUsersPage();
-        }
-
-        window.renderAdminApprovals = function() {
-            const pendings = window.allUsersState.filter(u => u.role === 'MANAGER' && u.status === 'pending');
-            const wrapper = document.getElementById('approvalList');
-            
-            if(!wrapper) return; // Safety check
-            
-            wrapper.innerHTML = '';
-            
-            if(pendings.length === 0) {
-                wrapper.innerHTML = '<div class="text-center text-amber-600/60 py-6 bg-white rounded-2xl font-medium border border-dashed border-amber-200">Semua request sudah tertangani.</div>';
-                return;
-            }
-            
-            pendings.forEach(u => {
-                wrapper.innerHTML += `
-                    <div class="bg-white border border-amber-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <h4 class="font-extrabold text-slate-800 text-lg">${u.name}</h4>
-                                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 uppercase border border-amber-200 shadow-sm animate-pulse">Pending</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest"><i class="fas fa-id-badge mr-1 text-slate-400"></i> ${u.id}</p>
-                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                <span class="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wider font-bold border border-indigo-100"><i class="fas fa-store mr-1 text-indigo-400"></i>${u.store}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 border-t border-slate-100 sm:border-t-0 pt-4 sm:pt-0">
-                            <button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-emerald-500 text-white hover:bg-emerald-600 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-check mr-1"></i> Terima</button>
-                            <button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-white text-red-500 border border-red-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-times mr-1"></i> Tolak</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        window.renderUsersPage = function() {
-            const wrapper = document.getElementById('allUsersList');
-            if(!wrapper) return; // Safety check
-            
-            wrapper.innerHTML = '';
-            
-            if(window.filteredUsersState.length === 0) {
-                wrapper.innerHTML = '<div class="text-center text-slate-400 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">Pengguna tidak ditemukan.</div>';
-                const pageInfo = document.getElementById('usersPageInfo');
-                if (pageInfo) pageInfo.innerText = `Halaman 1 dari 1`;
-                return;
-            }
-
-            const totalPages = Math.ceil(window.filteredUsersState.length / window.usersPerPage);
-            if(window.usersPage < 1) window.usersPage = 1;
-            if(window.usersPage > totalPages) window.usersPage = totalPages;
-            
-            const startIndex = (window.usersPage - 1) * window.usersPerPage;
-            const endIndex = startIndex + window.usersPerPage;
-            const pageData = window.filteredUsersState.slice(startIndex, endIndex);
-            
-            pageData.forEach(u => {
-                const badgeClass = u.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200';
-                const isSelf = window.currentUser && String(u.id) === String(window.currentUser.id);
-                const safeName = u.name ? u.name.replace(/"/g, '&quot;') : '';
-                
-                wrapper.innerHTML += `
-                    <div class="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] transition-shadow group">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-1.5">
-                                <h4 class="font-extrabold text-slate-800 text-base">${u.name}</h4>
-                                <span class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${badgeClass}">${u.status}</span>
-                                ${isSelf ? '<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-slate-800 text-white uppercase tracking-wider">Anda</span>' : ''}
-                            </div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
-                            <div class="flex gap-2">
-                                <span class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-user-shield mr-1 opacity-70"></i>${u.role}</span>
-                                <span class="bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-store mr-1 opacity-70"></i>${u.store}</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap sm:flex-col gap-2 border-t border-slate-50 sm:border-t-0 pt-4 sm:pt-0">
-                            <button type="button" onclick="generateQRCode('${u.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="flex-1 bg-slate-50 border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-qrcode mr-1"></i> QR</button>
-                            <button type="button" onclick="openEditUserModal('${u.id}')" class="flex-1 bg-slate-50 border border-slate-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-pen mr-1"></i> Edit</button>
-                            ${!isSelf ? `<button type="button" onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-trash mr-1"></i> Del</button>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            const pageInfo = document.getElementById('usersPageInfo');
-            if (pageInfo) pageInfo.innerText = `Halaman ${window.usersPage} dari ${totalPages}`;
-        }
-
-        window.accManager = async function(id) { 
-            window.showLoading('Otorisasi Manager...'); 
-            try {
-                await updateDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", String(id)), { status: 'approved' });
-                Swal.fire({title:'Diterima', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
-                const idx = window.allUsersState.findIndex(u => String(u.id) === String(id));
-                if(idx > -1) window.allUsersState[idx].status = 'approved';
-                window.renderAdminApprovals(); window.filterAllUsers();
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
-        }
-
-        window.rejManager = async function(id) {
-            window.showLoading('Menghapus Permintaan...');
-            try {
-                await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", String(id)));
-                Swal.fire({title:'Ditolak & Dihapus', icon:'info', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
-                window.allUsersState = window.allUsersState.filter(u => String(u.id) !== String(id));
-                window.renderAdminApprovals(); window.filterAllUsers();
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
-        }
-
-        window.handleAddAdmin = async function(e) {
-            e.preventDefault();
-            const adminData = { id: document.getElementById('newAdminId').value, name: document.getElementById('newAdminName').value, password: document.getElementById('newAdminPass').value, role: 'ADMIN', store: 'ALL', position: 'Area Manager', status: 'approved' };
-            window.showLoading('Mendaftarkan Admin...');
-            try {
-                await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", String(adminData.id)), adminData);
-                Swal.fire({title:'Berhasil', text:'Admin Area Baru didaftarkan', icon:'success', customClass:{popup:'rounded-3xl'}}); e.target.reset();
-                window.allUsersState.push(adminData); window.filterAllUsers(); 
-            } catch(err) { Swal.fire('Error', err.message, 'error'); }
-        }
-
+        // ================= IMPORT EXCEL LOGIC =================
         window.importEmployeesExcel = function() {
             const fileInput = document.getElementById('fileImportEmp');
             if(!fileInput.files.length) return Swal.fire('Warning', 'Pilih file Excel terlebih dahulu!', 'warning');
             const reader = new FileReader();
             reader.onload = async (e) => {
-                window.showLoading('Memproses Data Akun & Karyawan...');
+                showLoading('Memproses Excel Karyawan...');
                 try {
-                    await ensureAuth(); const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const sheetName = workbook.SheetNames[0]; const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
-                    let count = 0; let batch = writeBatch(db); const batchPromises = [];
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
+                    
+                    let count = 0;
+                    let batch = writeBatch(db);
+                    const batchPromises = [];
+                    
                     json.forEach(rawRow => {
-                        const row = {}; for(let k in rawRow) row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
-                        const id = String(row.employeeid || row.id || ''); const name = String(row.fullname || row.name || row.nama || ''); const role = String(row.role || 'KARYAWAN').toUpperCase(); const store = String(row.store || 'UNKNOWN'); const position = String(row.position || 'Crew'); const password = String(row.password || '123456'); const status = String(row.status || 'approved').toLowerCase(); const createdAt = String(row.createdat || new Date().toISOString());
+                        // Normalisasi nama kolom (hilangkan spasi dan jadikan huruf kecil semua)
+                        const row = {};
+                        for(let k in rawRow) {
+                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
+                        }
+                        
+                        // Fleksibilitas nama kolom Excel
+                        const id = String(row.id || row.empid || row.nik || row.employeeid || '');
+                        const name = String(row.name || row.nama || row.namalengkap || '');
+                        const store = String(row.store || row.resto || row.cabang || row.asalstore || 'UNKNOWN');
+                        const position = String(row.position || row.jabatan || row.posisi || 'Crew');
+
                         if(id && name && id !== 'undefined' && name !== 'undefined') {
-                            const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
-                            batch.set(userRef, { id, name, role, store, position, password, status, createdAt });
-                            if (role !== 'ADMIN') { const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id); batch.set(empRef, { id, name, store, position, image: '' }); }
-                            count++; if (count % 200 === 0) { batchPromises.push(batch.commit()); batch = writeBatch(db); }
+                            const empData = { id: id, name: name, store: store, position: position };
+                            const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
+                            
+                            batch.set(empRef, empData);
+                            count++;
+                            
+                            // Bypass limit 500 operasi Firebase per batch
+                            if (count % 400 === 0) {
+                                batchPromises.push(batch.commit());
+                                batch = writeBatch(db);
+                            }
                         }
                     });
-                    batchPromises.push(batch.commit()); await Promise.all(batchPromises);
-                    window.isEmployeesLoaded = false; window.isAdminDataLoaded = false;
-                    Swal.fire({title: 'Berhasil', text: `${count} Akun dan Karyawan diimpor.`, icon: 'success', customClass: {popup: 'rounded-3xl'}}).then(() => { if (window.currentUser && window.currentUser.role === 'ADMIN') window.loadAdminData(); });
+                    
+                    // Commit sisa data
+                    batchPromises.push(batch.commit());
+                    await Promise.all(batchPromises);
+                    
+                    window.isEmployeesLoaded = false;
+                    
+                    if (count > 0) {
+                        Swal.fire('Berhasil', `${count} Data karyawan berhasil diimpor.`, 'success');
+                    } else {
+                        Swal.fire('Gagal', 'Tidak ada data valid. Pastikan Excel memiliki kolom ID dan Nama (Name).', 'error');
+                    }
                 } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
-            }; reader.readAsArrayBuffer(fileInput.files[0]);
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
         }
 
         window.importHistoryExcel = function() {
@@ -1325,31 +933,91 @@
             if(!fileInput.files.length) return Swal.fire('Warning', 'Pilih file Excel terlebih dahulu!', 'warning');
             const reader = new FileReader();
             reader.onload = async (e) => {
-                window.showLoading('Memproses Excel Absensi...');
+                showLoading('Memproses Excel Absensi...');
                 try {
-                    await ensureAuth(); const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const sheetName = workbook.SheetNames[0]; const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
-                    let count = 0; let batch = writeBatch(db); const batchPromises = [];
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    // Atur format pembacaan agar tanggal tidak menjadi serial number aneh
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
+                    
+                    let count = 0;
+                    let batch = writeBatch(db);
+                    const batchPromises = [];
+                    
                     json.forEach(rawRow => {
-                        const row = {}; for(let k in rawRow) row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
-                        const empId = String(row.empid || row.id || row.employeeid || ''); const name = String(row.name || row.nama || ''); let dateRaw = String(row.date || row.tanggal || row.tgl || row.createdat || ''); const store = String(row.store || 'UNKNOWN'); const outTime = String(row.out || row.keluar || '-'); const inTime = String(row.in || row.masuk || '-'); let duration = String(row.duration || row.durasi || '');
-                        if(dateRaw.includes(' ')) dateRaw = dateRaw.split(' ')[0]; if(dateRaw.includes('T')) dateRaw = dateRaw.split('T')[0];
-                        if(dateRaw.includes('/')) { const parts = dateRaw.split('/'); if(parts.length === 3) dateRaw = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`; }
-                        if(empId && name && dateRaw && empId !== 'undefined' && dateRaw !== 'undefined') {
+                        // Normalisasi nama kolom
+                        const row = {};
+                        for(let k in rawRow) {
+                            row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
+                        }
+                        
+                        // Fleksibilitas pencarian kolom dari format spreadsheet yang berbeda-beda
+                        const empId = String(row.empid || row.id || row.nik || row.employeeid || '');
+                        const name = String(row.name || row.nama || '');
+                        const dateRaw = String(row.date || row.tanggal || row.tgl || '');
+                        const store = String(row.store || row.resto || row.cabang || 'UNKNOWN');
+                        const outTime = String(row.out || row.keluar || row.breakout || '-');
+                        const inTime = String(row.in || row.masuk || row.breakin || '-');
+                        let duration = String(row.duration || row.durasi || row.totaldurasi || '');
+                        
+                        // Bersihkan spasi/karakter jika format date dari excel memuat timezone
+                        const dateStr = dateRaw.split(' ')[0].split('T')[0];
+
+                        // Pastikan data esensial ada
+                        if(empId && name && dateStr && empId !== 'undefined' && dateStr !== 'undefined') {
+                            
+                            // Bersihkan angka durasi jika ada tulisan teks di dalamnya
                             duration = duration ? duration.replace(/[^0-9]/g, '') : null;
+
                             const histRef = doc(collection(db, "artifacts", APP_ID, "public", "data", "history"));
-                            batch.set(histRef, { empId, name, store, date: dateRaw, out: outTime, in: inTime, duration: duration ? String(duration) : null });
-                            count++; if (count % 400 === 0) { batchPromises.push(batch.commit()); batch = writeBatch(db); }
+                            batch.set(histRef, {
+                                empId: empId, 
+                                name: name, 
+                                store: store,
+                                date: dateStr, 
+                                out: outTime, 
+                                in: inTime,
+                                duration: duration ? String(duration) : null
+                            });
+                            count++;
+                            
+                            // Eksekusi tiap 400 data agar tidak melampaui limit write firebase
+                            if (count % 400 === 0) {
+                                batchPromises.push(batch.commit());
+                                batch = writeBatch(db);
+                            }
                         }
                     });
-                    batchPromises.push(batch.commit()); await Promise.all(batchPromises);
-                    window.isHistoryLoaded = false; window.analyticsData = [];
-                    Swal.fire('Berhasil', `${count} Baris absensi berhasil diimpor.`, 'success');
+                    
+                    batchPromises.push(batch.commit());
+                    await Promise.all(batchPromises);
+                    
+                    window.isHistoryLoaded = false;
+                    window.analyticsData = []; // Reset memori grafik analytics agar memuat data baru
+                    
+                    if(count > 0) {
+                        Swal.fire('Berhasil', `${count} Baris absensi berhasil diimpor.`, 'success');
+                    } else {
+                        Swal.fire('Gagal', 'Gagal memproses data. Pastikan ada kolom "ID", "Name", dan "Date / Tanggal".', 'error');
+                    }
                 } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
-            }; reader.readAsArrayBuffer(fileInput.files[0]);
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
         }
 
-        setInterval(() => { const t = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); const desk = document.getElementById('clockTime'), mob = document.getElementById('clockTimeMobile'); if(desk) desk.innerText = t; if(mob) mob.innerText = t; }, 1000);
-        window.onload = () => { getDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo")).then(s => { if(s.exists() && s.data().logo) document.getElementById('loginAppLogo').src = s.data().logo; }).catch(()=>{}); };
+        // ================= GLOBAL HELPERS =================
+        window.togglePassword = function(inputId, iconId) {
+            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
+            if (input.type === "password") { input.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
+            else { input.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+        }
+        window.showRegister = function() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('register-section').classList.remove('hidden'); }
+        window.showLogin = function() { document.getElementById('register-section').classList.add('hidden'); document.getElementById('login-section').classList.remove('hidden'); }
+        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); }
+        window.openAddModal = function() { document.getElementById('employeeModal').classList.remove('hidden'); }
+        window.changeEmpPage = function(dir) { window.empPage += dir; renderEmployees(); }
+
     </script>
 </body>
 </html>
