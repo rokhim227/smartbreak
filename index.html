@@ -871,13 +871,15 @@
         window.importEmployeesExcel = function() {
             const fileInput = document.getElementById('fileImportEmp');
             if(!fileInput.files.length) return Swal.fire('Warning', 'Pilih file Excel terlebih dahulu!', 'warning');
+            
             const reader = new FileReader();
             reader.onload = async (e) => {
-                showLoading('Memproses Excel Karyawan...');
+                showLoading('Memproses Data Akun & Karyawan...');
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const sheetName = workbook.SheetNames[0];
+                    // Baca data excel (header baris pertama akan jadi key object)
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
                     
                     let count = 0;
@@ -885,27 +887,59 @@
                     const batchPromises = [];
                     
                     json.forEach(rawRow => {
-                        // Normalisasi nama kolom (hilangkan spasi dan jadikan huruf kecil semua)
+                        // NORMALISASI NAMA KOLOM: Menghilangkan spasi dan mengubah jadi huruf kecil semua
+                        // Ini akan mengubah "Employee ID" menjadi "employeeid", "Full Name" menjadi "fullname", dll.
                         const row = {};
                         for(let k in rawRow) {
                             row[k.toString().toLowerCase().replace(/[\s_]/g, '')] = rawRow[k];
                         }
                         
-                        // Fleksibilitas nama kolom Excel
-                        const id = String(row.id || row.empid || row.nik || row.employeeid || '');
-                        const name = String(row.name || row.nama || row.namalengkap || '');
-                        const store = String(row.store || row.resto || row.cabang || row.asalstore || 'UNKNOWN');
-                        const position = String(row.position || row.jabatan || row.posisi || 'Crew');
+                        // MENCOCOKKAN DENGAN TEMPLATE GAMBAR:
+                        const id = String(row.employeeid || row.id || '');
+                        const name = String(row.fullname || row.name || row.nama || '');
+                        const role = String(row.role || 'KARYAWAN').toUpperCase();
+                        const store = String(row.store || 'UNKNOWN');
+                        const position = String(row.position || 'Crew');
+                        const password = String(row.password || '123456');
+                        const status = String(row.status || 'approved').toLowerCase();
+                        const createdAt = String(row.createdat || new Date().toISOString());
 
+                        // Validasi: Pastikan ID dan Nama ada
                         if(id && name && id !== 'undefined' && name !== 'undefined') {
-                            const empData = { id: id, name: name, store: store, position: position };
-                            const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
                             
-                            batch.set(empRef, empData);
+                            // 1. Simpan ke Collection 'users' (Untuk Akses Login)
+                            const userRef = doc(db, "artifacts", APP_ID, "public", "data", "users", id);
+                            const userData = {
+                                id: id,
+                                name: name,
+                                role: role,
+                                store: store,
+                                position: position,
+                                password: password,
+                                status: status,
+                                createdAt: createdAt
+                            };
+                            batch.set(userRef, userData);
+                            
+                            // 2. Simpan ke Collection 'employees' (Untuk Direktori di dalam Aplikasi)
+                            // Jika dia bukan admin, masukkan juga ke direktori karyawan. (Manager dan Karyawan akan masuk direktori)
+                            if (role !== 'ADMIN') {
+                                const empRef = doc(db, "artifacts", APP_ID, "public", "data", "employees", id);
+                                const empData = {
+                                    id: id,
+                                    name: name,
+                                    store: store,
+                                    position: position,
+                                    image: '' // Default tanpa foto
+                                };
+                                batch.set(empRef, empData);
+                            }
+                            
                             count++;
                             
                             // Bypass limit 500 operasi Firebase per batch
-                            if (count % 400 === 0) {
+                            // 1 User bisa menghasilkan 2 operasi tulis (users + employees), jadi kita batasi di 200 iterasi per batch
+                            if (count % 200 === 0) {
                                 batchPromises.push(batch.commit());
                                 batch = writeBatch(db);
                             }
@@ -917,13 +951,27 @@
                     await Promise.all(batchPromises);
                     
                     window.isEmployeesLoaded = false;
+                    window.isAdminDataLoaded = false; // Reset data tabel admin agar refresh
                     
                     if (count > 0) {
-                        Swal.fire('Berhasil', `${count} Data karyawan berhasil diimpor.`, 'success');
+                        Swal.fire({
+                            title: 'Berhasil', 
+                            text: `${count} Akun dan Data Karyawan berhasil diimpor. Anda sekarang bisa login menggunakan data tersebut.`, 
+                            icon: 'success',
+                            customClass: {popup: 'rounded-3xl'}
+                        }).then(() => {
+                            // Reload tabel jika sedang berada di menu admin
+                            if (window.currentUser && window.currentUser.role === 'ADMIN') {
+                                loadAdminData();
+                            }
+                        });
                     } else {
-                        Swal.fire('Gagal', 'Tidak ada data valid. Pastikan Excel memiliki kolom ID dan Nama (Name).', 'error');
+                        Swal.fire('Gagal', 'Tidak ada data valid yang diproses. Pastikan format kolom sama persis dengan template (Employee ID, Full Name, dll).', 'error');
                     }
-                } catch(error) { Swal.fire('Gagal', error.message, 'error'); }
+                } catch(error) { 
+                    Swal.fire('Gagal', error.message, 'error'); 
+                    console.error(error);
+                }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
         }
