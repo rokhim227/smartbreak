@@ -1114,99 +1114,152 @@
 
         // --- ADMIN & IMPORT EXCEL ---
         window.saveAppSettings = async function() {
-            const title = document.getElementById('setAppTitle').value; const logo = document.getElementById('setAppLogo').value;
-            window.showLoading('Menerapkan Pengaturan...');
+            const title = document.getElementById('setAppTitle').value;
+            const logo = document.getElementById('setAppLogo').value;
+            
+            showLoading('Menerapkan Pengaturan...');
             try {
-                await ensureAuth(); await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo"), { title, logo });
-                document.getElementById('appTitle').innerText = title; document.getElementById('appLogo').src = logo; document.getElementById('loginAppLogo').src = logo;
+                await ensureAuth();
+                await setDoc(doc(db, "artifacts", APP_ID, "public", "data", "settings", "appInfo"), { title, logo });
+                
+                document.getElementById('appTitle').innerText = title;
+                document.getElementById('appLogo').src = logo;
+                document.getElementById('loginAppLogo').src = logo;
                 Swal.fire({title:'Sukses', text:'Tampilan berhasil diperbarui', icon:'success', customClass:{popup:'rounded-3xl'}});
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+            } catch(e) { 
+                Swal.fire('Error', e.message, 'error'); 
+            }
         }
 
         window.loadAdminData = async function() {
-            document.getElementById('approvalList').innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
-            document.getElementById('allUsersList').innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
+            const approvalListEl = document.getElementById('approvalList');
+            const allUsersListEl = document.getElementById('allUsersList');
+            
+            if (approvalListEl) approvalListEl.innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
+            if (allUsersListEl) allUsersListEl.innerHTML = '<div class="text-center py-6"><div class="loader mx-auto"></div></div>';
+
             try {
-                await ensureAuth(); const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "users"));
-                let users = []; snap.forEach(doc => users.push(doc.data()));
-                window.allUsersState = users; window.filteredUsersState = users; window.isAdminDataLoaded = true; window.usersPage = 1;
-                window.renderAdminApprovals(); window.renderUsersPage();
-            } catch(e) { console.error(e); }
+                await ensureAuth();
+                const snap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "users"));
+                let users = [];
+                snap.forEach(doc => users.push(doc.data()));
+                
+                window.allUsersState = users;
+                window.filteredUsersState = users;
+                window.isAdminDataLoaded = true;
+                window.usersPage = 1;
+                
+                window.renderAdminApprovals();
+                window.renderUsersPage();
+            } catch(e) { 
+                console.error(e); 
+            }
         }
         
-        window.forceLoadAdminData = function() { window.isAdminDataLoaded = false; window.loadAdminData(); }
+        window.forceLoadAdminData = function() {
+            window.isAdminDataLoaded = false;
+            window.loadAdminData();
+        }
 
         window.filterAllUsers = function() {
             const q = document.getElementById('searchUserInput').value.toLowerCase();
-            window.filteredUsersState = window.allUsersState.filter(u => (u.name && u.name.toLowerCase().includes(q)) || String(u.id).includes(q) || (u.role && u.role.toLowerCase().includes(q)) || (u.store && u.store.toLowerCase().includes(q)));
-            window.usersPage = 1; window.renderUsersPage();
+            window.filteredUsersState = window.allUsersState.filter(u => {
+                return (u.name && u.name.toLowerCase().includes(q)) || 
+                       String(u.id).includes(q) || 
+                       (u.role && u.role.toLowerCase().includes(q)) || 
+                       (u.store && u.store.toLowerCase().includes(q));
+            });
+            window.usersPage = 1;
+            window.renderUsersPage();
         }
 
         window.renderAdminApprovals = function() {
             const pendings = window.allUsersState.filter(u => u.role === 'MANAGER' && u.status === 'pending');
-            const wrapper = document.getElementById('approvalList'); if(!wrapper) return; wrapper.innerHTML = '';
-            if(pendings.length === 0) { wrapper.innerHTML = '<div class="text-center text-amber-600/60 py-6 bg-white rounded-2xl font-medium border border-dashed border-amber-200">Semua request sudah tertangani.</div>'; return; }
+            const wrapper = document.getElementById('approvalList');
+            
+            if(!wrapper) return; // Safety check
+            
+            wrapper.innerHTML = '';
+            
+            if(pendings.length === 0) {
+                wrapper.innerHTML = '<div class="text-center text-amber-600/60 py-6 bg-white rounded-2xl font-medium border border-dashed border-amber-200">Semua request sudah tertangani.</div>';
+                return;
+            }
+            
             pendings.forEach(u => {
-                wrapper.innerHTML += `<div class="bg-white border border-amber-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"><div><div class="flex items-center gap-2 mb-2"><h4 class="font-extrabold text-slate-800 text-lg">${u.name}</h4><span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 uppercase border border-amber-200 shadow-sm animate-pulse">Pending</span></div><div class="flex items-center gap-3"><p class="text-xs font-bold text-slate-500 uppercase tracking-widest"><i class="fas fa-id-badge mr-1 text-slate-400"></i> ${u.id}</p><span class="w-1 h-1 bg-slate-300 rounded-full"></span><span class="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wider font-bold border border-indigo-100"><i class="fas fa-store mr-1 text-indigo-400"></i>${u.store}</span></div></div><div class="flex gap-2 border-t border-slate-100 sm:border-t-0 pt-4 sm:pt-0"><button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-emerald-500 text-white hover:bg-emerald-600 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-check mr-1"></i> Terima</button><button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-white text-red-500 border border-red-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-times mr-1"></i> Tolak</button></div></div>`;
+                wrapper.innerHTML += `
+                    <div class="bg-white border border-amber-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <h4 class="font-extrabold text-slate-800 text-lg">${u.name}</h4>
+                                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 uppercase border border-amber-200 shadow-sm animate-pulse">Pending</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest"><i class="fas fa-id-badge mr-1 text-slate-400"></i> ${u.id}</p>
+                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                <span class="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wider font-bold border border-indigo-100"><i class="fas fa-store mr-1 text-indigo-400"></i>${u.store}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 border-t border-slate-100 sm:border-t-0 pt-4 sm:pt-0">
+                            <button type="button" onclick="accManager('${u.id}')" class="flex-1 sm:flex-none bg-emerald-500 text-white hover:bg-emerald-600 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-check mr-1"></i> Terima</button>
+                            <button type="button" onclick="rejManager('${u.id}')" class="flex-1 sm:flex-none bg-white text-red-500 border border-red-200 hover:bg-red-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-times mr-1"></i> Tolak</button>
+                        </div>
+                    </div>
+                `;
             });
         }
 
         window.renderUsersPage = function() {
-            const wrapper = document.getElementById('allUsersList'); if(!wrapper) return; wrapper.innerHTML = '';
-            if(window.filteredUsersState.length === 0) { wrapper.innerHTML = '<div class="text-center text-slate-400 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">Pengguna tidak ditemukan.</div>'; document.getElementById('usersPageInfo').innerText = `Halaman 1 dari 1`; return; }
+            const wrapper = document.getElementById('allUsersList');
+            if(!wrapper) return; // Safety check
+            
+            wrapper.innerHTML = '';
+            
+            if(window.filteredUsersState.length === 0) {
+                wrapper.innerHTML = '<div class="text-center text-slate-400 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">Pengguna tidak ditemukan.</div>';
+                const pageInfo = document.getElementById('usersPageInfo');
+                if (pageInfo) pageInfo.innerText = `Halaman 1 dari 1`;
+                return;
+            }
+
             const totalPages = Math.ceil(window.filteredUsersState.length / window.usersPerPage);
-            const pageData = window.filteredUsersState.slice((window.usersPage - 1) * window.usersPerPage, window.usersPage * window.usersPerPage);
+            if(window.usersPage < 1) window.usersPage = 1;
+            if(window.usersPage > totalPages) window.usersPage = totalPages;
+            
+            const startIndex = (window.usersPage - 1) * window.usersPerPage;
+            const endIndex = startIndex + window.usersPerPage;
+            const pageData = window.filteredUsersState.slice(startIndex, endIndex);
+            
             pageData.forEach(u => {
                 const badgeClass = u.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200';
-                const isSelf = String(u.id) === String(window.currentUser.id); const safeName = u.name ? u.name.replace(/"/g, '&quot;') : '';
-                wrapper.innerHTML += `<div class="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] transition-shadow group"><div class="flex-1"><div class="flex items-center gap-3 mb-1.5"><h4 class="font-extrabold text-slate-800 text-base">${u.name}</h4><span class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${badgeClass}">${u.status}</span>${isSelf ? '<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-slate-800 text-white uppercase tracking-wider">Anda</span>' : ''}</div><p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p><div class="flex gap-2"><span class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-user-shield mr-1 opacity-70"></i>${u.role}</span><span class="bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-store mr-1 opacity-70"></i>${u.store}</span></div></div><div class="flex flex-wrap sm:flex-col gap-2 border-t border-slate-50 sm:border-t-0 pt-4 sm:pt-0"><button type="button" onclick="generateQRCode('${u.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="flex-1 bg-slate-50 border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-qrcode mr-1"></i> QR</button><button type="button" onclick="viewUserDetail('${u.id}')" class="flex-1 bg-slate-50 border border-slate-200 text-blue-600 hover:bg-blue-50 hover:border-blue-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-eye mr-1"></i> Info</button><button type="button" onclick="openEditUserModal('${u.id}')" class="flex-1 bg-slate-50 border border-slate-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-pen mr-1"></i> Edit</button>${!isSelf ? `<button type="button" onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-trash mr-1"></i> Del</button>` : ''}</div></div>`;
+                const isSelf = window.currentUser && String(u.id) === String(window.currentUser.id);
+                const safeName = u.name ? u.name.replace(/"/g, '&quot;') : '';
+                
+                wrapper.innerHTML += `
+                    <div class="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] transition-shadow group">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-1.5">
+                                <h4 class="font-extrabold text-slate-800 text-base">${u.name}</h4>
+                                <span class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${badgeClass}">${u.status}</span>
+                                ${isSelf ? '<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-slate-800 text-white uppercase tracking-wider">Anda</span>' : ''}
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-id-badge mr-1"></i> ${u.id} • ${u.position}</p>
+                            <div class="flex gap-2">
+                                <span class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-user-shield mr-1 opacity-70"></i>${u.role}</span>
+                                <span class="bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider"><i class="fas fa-store mr-1 opacity-70"></i>${u.store}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap sm:flex-col gap-2 border-t border-slate-50 sm:border-t-0 pt-4 sm:pt-0">
+                            <button type="button" onclick="generateQRCode('${u.id}', this.getAttribute('data-name'))" data-name="${safeName}" class="flex-1 bg-slate-50 border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-qrcode mr-1"></i> QR</button>
+                            <button type="button" onclick="openEditUserModal('${u.id}')" class="flex-1 bg-slate-50 border border-slate-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-pen mr-1"></i> Edit</button>
+                            ${!isSelf ? `<button type="button" onclick="deleteUserRow('${u.id}')" class="flex-1 bg-white border border-red-200 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"><i class="fas fa-trash mr-1"></i> Del</button>` : ''}
+                        </div>
+                    </div>
+                `;
             });
-            document.getElementById('usersPageInfo').innerText = `Halaman ${window.usersPage} dari ${totalPages}`;
-        }
-        
-        window.changeUsersPage = function(dir) {
-            const totalPages = Math.ceil(window.filteredUsersState.length / window.usersPerPage); let newPage = window.usersPage + dir;
-            if(newPage >= 1 && newPage <= totalPages) { window.usersPage = newPage; window.renderUsersPage(); }
-        }
-
-        window.viewUserDetail = function(id) {
-            const u = window.allUsersState.find(x => String(x.id) === String(id)); if(!u) return Swal.fire('Error', 'Data pengguna tidak ditemukan.', 'error');
-            Swal.fire({ title: `<span class="font-bold text-slate-800">Detail Pengguna</span>`, html: `<div class="text-left text-sm space-y-3 mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner"><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">ID</span> <strong class="text-slate-800">${u.id}</strong></div><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">Nama</span> <strong class="text-slate-800">${u.name}</strong></div><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">Peran</span> <strong class="text-indigo-600">${u.role}</strong></div><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">Store</span> <strong class="text-slate-800">${u.store}</strong></div><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">Jabatan</span> <strong class="text-slate-800">${u.position}</strong></div><div class="flex justify-between border-b border-slate-200 pb-2"><span class="text-xs font-bold text-slate-400 uppercase">Password</span> <span class="font-mono bg-white px-2 py-0.5 border border-slate-200 rounded font-bold text-slate-600 tracking-widest">${u.password}</span></div><div class="flex justify-between"><span class="text-xs font-bold text-slate-400 uppercase">Status</span> <span class="uppercase font-bold text-emerald-600">${u.status}</span></div></div>`, confirmButtonText: 'Tutup', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-3xl', confirmButton: 'rounded-xl font-bold' } });
-        }
-
-        window.openEditUserModal = function(id) {
-            const u = window.allUsersState.find(x => String(x.id) === String(id)); if(!u) return;
-            document.getElementById('editUserId').value = u.id; document.getElementById('editUserName').value = u.name;
-            document.getElementById('editUserRole').value = u.role; document.getElementById('editUserStore').value = u.store;
-            document.getElementById('editUserStatus').value = u.status; document.getElementById('editUserPassword').value = u.password || '';
-            const inputPass = document.getElementById('editUserPassword'); const iconPass = document.getElementById('eyeEditUser'); inputPass.type = 'password'; iconPass.classList.replace('fa-eye-slash', 'fa-eye');
-            document.getElementById('editUserModal').classList.remove('hidden');
-        }
-
-        window.submitEditUser = async function() {
-            const updatedUser = { id: document.getElementById('editUserId').value, name: document.getElementById('editUserName').value, role: document.getElementById('editUserRole').value, store: document.getElementById('editUserStore').value, status: document.getElementById('editUserStatus').value, password: document.getElementById('editUserPassword').value };
-            window.showLoading('Menyimpan Perubahan...');
-            try {
-                await updateDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", String(updatedUser.id)), updatedUser);
-                window.closeModal('editUserModal'); Swal.fire({title:'Berhasil', text:'Data pengguna diperbarui', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
-                const idx = window.allUsersState.findIndex(u => String(u.id) === String(updatedUser.id));
-                if(idx > -1) window.allUsersState[idx] = {...window.allUsersState[idx], ...updatedUser};
-                window.renderAdminApprovals(); window.filterAllUsers(); window.isEmployeesLoaded = false;
-            } catch(e) { Swal.fire('Error', e.message, 'error'); }
-        }
-
-        window.deleteUserRow = function(id) {
-            Swal.fire({ title: 'Hapus Pengguna Akses?', text: 'Data login user ini dan profil karyawan miliknya akan dihapus permanen!', icon: 'error', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus Permanen', customClass:{popup:'rounded-3xl', confirmButton:'rounded-xl font-bold', cancelButton:'rounded-xl'} }).then(async r => {
-                if(r.isConfirmed) {
-                    window.showLoading('Menghapus Sistem...');
-                    try {
-                        await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "users", String(id)));
-                        Swal.fire({title:'Terhapus', text:'Pengguna berhasil dihapus', icon:'success', timer:1500, showConfirmButton:false, customClass:{popup:'rounded-3xl'}});
-                        window.allUsersState = window.allUsersState.filter(u => String(u.id) !== String(id));
-                        window.renderAdminApprovals(); window.filterAllUsers(); window.isEmployeesLoaded = false;
-                    } catch(e) { Swal.fire('Error', e.message, 'error'); }
-                }
-            });
+            
+            const pageInfo = document.getElementById('usersPageInfo');
+            if (pageInfo) pageInfo.innerText = `Halaman ${window.usersPage} dari ${totalPages}`;
         }
 
         window.accManager = async function(id) { 
