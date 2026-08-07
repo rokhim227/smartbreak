@@ -941,12 +941,13 @@
                 snap.forEach(doc => {
                     const d = doc.data();
                     if (d.date >= start && d.date <= end) {
-                        if (d.duration !== null && d.duration !== '' && d.duration !== undefined) {
+                        if (d.duration !== null && d.duration !== '' && d.duration !== undefined && d.duration !== 'NaN') {
                             const dur = parseInt(d.duration, 10);
                             if (!isNaN(dur)) { const allowed = window.getAllowedDuration(d.out); d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu'; }
-                            else { d.status = 'Sedang Break'; }
+                            else { d.status = 'Sedang Break'; d.duration = null; }
                         } else {
                             d.status = 'Sedang Break';
+                            d.duration = null;
                         }
                         data.push(d);
                     }
@@ -958,7 +959,8 @@
 
         window.getAllowedDuration = function(outTimeStr) {
             if (!outTimeStr || typeof outTimeStr !== 'string' || outTimeStr === '-') return 60;
-            const hour = parseInt(outTimeStr.split(':')[0], 10); return (hour >= 0 && hour <= 5) ? 30 : 60;
+            // Menangani format jam dengan pemisah titik (.) maupun titik dua (:)
+            const hour = parseInt(outTimeStr.split(/[:\.]/)[0], 10); return (hour >= 0 && hour <= 5) ? 30 : 60;
         }
 
         window.processAnalyticsData = function() {
@@ -1073,7 +1075,8 @@
                 const emp = empSnap.data();
 
                 const dateStr = new Date().toISOString().split('T')[0];
-                const timeStr = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
 
                 const logData = { empId: val, name: emp.name, store: emp.store, date: dateStr };
                 if (type === 'OUT') {
@@ -1084,7 +1087,9 @@
                     const snap = await getDocs(q); let foundDoc = null;
                     snap.forEach(doc => { if(doc.data().out !== '-' && doc.data().in === '-') foundDoc = doc; });
                     if(!foundDoc) throw new Error("Belum melakukan scan BREAK OUT hari ini!");
-                    const diffMins = Math.round((new Date(`${dateStr}T${timeStr}`) - new Date(`${dateStr}T${foundDoc.data().out}`)) / 60000);
+                    
+                    const outTimeSanitized = foundDoc.data().out.replace(/\./g, ':');
+                    const diffMins = Math.round((new Date(`${dateStr}T${timeStr}`) - new Date(`${dateStr}T${outTimeSanitized}`)) / 60000);
                     await updateDoc(doc(db, "artifacts", APP_ID, "public", "data", "history", foundDoc.id), { in: timeStr, duration: String(diffMins) });
                 }
 
@@ -1224,12 +1229,13 @@
                 snap.forEach(doc => {
                     const d = doc.data(); d.id = doc.id;
                     if (d.date >= start && d.date <= end) {
-                        if (d.duration !== null && d.duration !== '' && d.duration !== undefined) {
+                        if (d.duration !== null && d.duration !== '' && d.duration !== undefined && d.duration !== 'NaN') {
                             const dur = parseInt(d.duration, 10);
                             if (!isNaN(dur)) { const allowed = window.getAllowedDuration(d.out); d.status = dur > allowed ? 'Terlambat' : 'Tepat Waktu'; }
-                            else { d.status = 'Sedang Break'; }
+                            else { d.status = 'Sedang Break'; d.duration = null; }
                         } else {
                             d.status = 'Sedang Break';
+                            d.duration = null;
                         }
                         data.push(d);
                     }
